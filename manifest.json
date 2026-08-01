@@ -1,0 +1,12 @@
+{
+  "background_color": "#00d6fe",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "alexrbx2025-droid.github",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "alexrbx2025-droid.github",
+  "start_url": "/",
+  "theme_color": "#00f714",
+  "id": "com.nexa.messenger"
+}

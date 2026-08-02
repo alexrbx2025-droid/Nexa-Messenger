@@ -216,8 +216,7 @@
    .nav-btn { white-space: nowrap; } 
  }
  </style>
-    <link rel="manifest" href="manifest.json">
-</head>
+    <link rel="manifest" href="./manifest.json">
 </head>
 <body>
 
@@ -514,8 +513,7 @@
  </div>
 
  <script>
-  // Подключаемся к Supabase (вставь сюда свои данные из настроек Supabase)
-const SUPABASE_URL = 'https://cgbfqznwdfremepyatef..supabase.co'; 
+const SUPABASE_URL = 'https://cgbfqznwdfremepyatef.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnYmZxem53ZGZyZW1lcHlhdGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNTM0ODcsImV4cCI6MjEwMDcyOTQ4N30.OWpxicJy7C-dynPWpeZc--Kte1oe2NXtZ16zeUdooWM';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  let currentUser = null;
@@ -958,6 +956,14 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
    modal.classList.add('active');
  }
+ 
  </script>
+ <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('Service Worker зарегистрирован!'))
+      .catch((err) => console.log('Ошибка:', err));
+  }
+</script>
 </body>
 </html>

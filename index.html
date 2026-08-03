@@ -140,6 +140,17 @@
  .msg.my .msg-author { color: rgba(0,0,0,0.7); }
  .role-badge { font-size: 9px; padding: 1px 5px; border-radius: 4px; background: rgba(255, 255, 255, 0.2); color: #fff; font-weight: normal; }
  .msg.my .role-badge { background: rgba(0, 0, 0, 0.15); color: #000; }
+ .msg-badge { font-size: 12px; margin-left: 4px; }
+
+ /* ЗНАЧКИ В НАСТРОЙКАХ */
+ .badges-container { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+ .badge-item { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); cursor: pointer; font-size: 13px; transition: 0.2s; }
+ .badge-item:hover, .badge-item.active { background: rgba(0, 210, 255, 0.2); border-color: var(--accent); }
+
+ /* АДМИН ПАНЕЛЬ */
+ .admin-stat-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border); text-align: center; flex: 1; }
+ .admin-stat-num { font-size: 24px; color: var(--accent); font-weight: bold; margin-bottom: 5px; }
+ .admin-user-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--glass-border); }
 
  /* ГОЛОСОВЫЕ СООБЩЕНИЯ */
  .voice-msg { display: flex; align-items: center; gap: 10px; min-width: 180px; }
@@ -196,12 +207,6 @@
  .settings-input { width: 100%; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--glass-border); padding: 10px 14px; border-radius: 10px; color: #fff; outline: none; font-size: 13.5px; }
  .settings-input:focus { border-color: var(--accent); }
  
- /* АНИМАЦИИ */
- @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
- @keyframes scaleUp { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
- @keyframes msgIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
- @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
- 
  /* АДАПТИВ ДЛЯ МОБИЛОК / APK */
  @media (max-width: 768px) { 
    #mainApp { width: 100vw; height: 100dvh; border-radius: 0; border: none; } 
@@ -237,7 +242,7 @@
 
      <!-- ФОРМА ВХОДА -->
      <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
-       <input type="email" id="loginUsername" class="settings-input" placeholder="Email" required>
+       <input type="text" id="loginUsername" class="settings-input" placeholder="Никнейм или Email" required>
        <input type="password" id="loginPassword" class="settings-input" placeholder="Пароль" required>
        <button type="submit" class="btn" style="margin-top: 10px;" data-i18n="loginBtn">Войти</button>
      </form>
@@ -258,7 +263,7 @@
        <!-- Шаг 2: Пароль -->
        <div id="step-2" class="reg-step">
          <h3 style="font-size: 15px; margin-bottom: 5px; color: var(--accent);">Шаг 2: Пароль</h3>
-         <input type="password" id="regPassword" class="settings-input" placeholder="Минимум 6 символов" required>
+         <input type="password" id="regPassword" class="settings-input" placeholder="Минимум 4 символа" required>
          <div class="btn-group">
            <button type="button" class="btn outline" onclick="prevRegStep(2)">Назад</button>
            <button type="button" class="btn" onclick="nextRegStep(2)">Далее</button>
@@ -306,6 +311,7 @@
      <div class="sidebar-header">
        <h3 style="letter-spacing: 0.5px; color: var(--accent);">Nexa</h3>
        <div style="display: flex; gap: 8px;">
+         <button class="icon-btn" title="Админ-панель" onclick="openAdminPanel()" style="color: #ff4757; border-color: rgba(255, 71, 87, 0.3);">👑</button>
          <button class="icon-btn" title="Создать" onclick="openCreateModal()">+</button>
          <button class="icon-btn" title="Настройки" onclick="openSettings()">⚙️</button>
        </div>
@@ -355,6 +361,54 @@
        <input type="text" id="messageInput" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
        <button id="voiceBtn" class="icon-btn" title="Голосовое сообщение" onclick="toggleVoiceRecord()">🎙️</button>
        <button class="btn" onclick="sendMessage()">➤</button>
+     </div>
+   </div>
+ </div>
+
+ <!-- МОДАЛКА АДМИН-ПАНЕЛИ -->
+ <div id="adminOverlay" class="modal-overlay">
+   <div class="settings-modal glass" style="max-width: 500px; height: auto;">
+     <div class="settings-topbar">
+       <h3 style="color: #ff4757;">👑 Панель Управления</h3>
+       <button class="icon-btn" onclick="closeModal('adminOverlay')">✕</button>
+     </div>
+     <div style="display: flex; gap: 10px; margin-top: 15px;">
+       <div class="admin-stat-box">
+         <div class="admin-stat-num">1,204</div>
+         <span style="font-size: 11px; color: var(--text-muted);">Пользователей</span>
+       </div>
+       <div class="admin-stat-box">
+         <div class="admin-stat-num">342</div>
+         <span style="font-size: 11px; color: var(--text-muted);">Онлайн</span>
+       </div>
+       <div class="admin-stat-box">
+         <div class="admin-stat-num">15.4k</div>
+         <span style="font-size: 11px; color: var(--text-muted);">Сообщений</span>
+       </div>
+     </div>
+     <h4 style="margin: 20px 0 10px; color: var(--accent);">Управление пользователями</h4>
+     <div style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+       <div class="admin-user-row">
+         <div>
+           <div style="font-weight: 600;">Spammer99</div>
+           <div style="font-size: 11px; color: var(--text-muted);">Нарушение правил</div>
+         </div>
+         <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Забанить</button>
+       </div>
+       <div class="admin-user-row">
+         <div>
+           <div style="font-weight: 600;">ToxicUser</div>
+           <div style="font-size: 11px; color: var(--text-muted);">Спам в общем чате</div>
+         </div>
+         <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Забанить</button>
+       </div>
+       <div class="admin-user-row">
+         <div>
+           <div style="font-weight: 600;">TestBot</div>
+           <div style="font-size: 11px; color: var(--text-muted);">API Тест</div>
+         </div>
+         <button class="btn outline" style="padding: 6px 12px; font-size: 12px;">Управление</button>
+       </div>
      </div>
    </div>
  </div>
@@ -427,6 +481,19 @@
                <span style="font-size: 11px; color: var(--text-muted);" data-i18n="nicknameLabel">Имя пользователя</span>
                <input type="text" id="settingsNickInput" class="settings-input" value="User">
              </div>
+             
+             <!-- БЛОК ВЫБОРА ЗНАЧКОВ -->
+             <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 5px;">
+               <span style="font-size: 11px; color: var(--text-muted);">Выбрать значок (Бейдж)</span>
+               <div class="badges-container" id="badgeSelection">
+                 <div class="badge-item active" onclick="selectBadge(this, '')">Без значка</div>
+                 <div class="badge-item" onclick="selectBadge(this, '💎')">💎 Premium</div>
+                 <div class="badge-item" onclick="selectBadge(this, '🚀')">🚀 Олд</div>
+                 <div class="badge-item" onclick="selectBadge(this, '🧪')">🧪 Тестер</div>
+                 <div class="badge-item" onclick="selectBadge(this, '🔥')">🔥 Актив</div>
+               </div>
+             </div>
+
              <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
                <span style="font-size: 11px; color: var(--text-muted);" data-i18n="bioLabel">О себе (Био)</span>
                <input type="text" id="settingsBioInput" class="settings-input" placeholder="Напишите пару слов о себе">
@@ -516,7 +583,6 @@
 const SUPABASE_URL = 'https://cgbfqznwdfremepyatef.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnYmZxem53ZGZyZW1lcHlhdGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNTM0ODcsImV4cCI6MjEwMDcyOTQ4N30.OWpxicJy7C-dynPWpeZc--Kte1oe2NXtZ16zeUdooWM';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
  let currentUser = null;
  let currentChatId = null;
  let isRecording = false;
@@ -530,11 +596,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
  let messages = {
    1: [
-     { id: 101, author: "Алекс", role: "👑 Админ", text: "Привет всем в Nexa Messenger!", my: false },
-     { id: 102, author: "Дмитрий", role: "⭐ Модератор", text: "Новый дизайн супер!", my: false }
+     { id: 101, author: "Алекс", role: "👑 Админ", badge: "💎", text: "Привет всем в Nexa Messenger!", my: false },
+     { id: 102, author: "Дмитрий", role: "⭐ Модератор", badge: "🚀", text: "Новый дизайн супер!", my: false }
    ],
    2: [
-     { id: 201, author: "Nexa Team", role: "👑 Админ", text: "Добро пожаловать в официальный канал!", my: false }
+     { id: 201, author: "Nexa Team", role: "👑 Админ", badge: "💎", text: "Добро пожаловать в официальный канал!", my: false }
    ]
  };
 
@@ -624,127 +690,57 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const username = document.getElementById('regUsername').value || 'NewUser';
   
   if (!email || !password) {
-    console.log("Остановка: пустой email или пароль");
     alert("Заполните email и пароль!");
     return;
   }
 
   try {
-    console.log("Шаг 2: Отправляем данные в Supabase Auth...", email, password);
     const { data, error } = await supabaseClient.auth.signUp({
       email: email,
       password: password,
     });
 
     if (error) {
-      console.error("Остановка на Шаге 2 (Ошибка Auth):", error.message);
       alert("Ошибка при регистрации: " + error.message);
       return; 
     }
-
-    console.log("Шаг 3: Авторизация прошла успешно! Пользователь:", data.user);
     
     if (data.user) {
-      console.log("Шаг 4: Пытаемся сохранить никнейм в таблицу users...");
       const { error: insertError } = await supabaseClient
         .from('users') 
-        .insert([
-          { 
-            id: data.user.id,
-            username: username, 
-            avatar: uploadedAvatar 
-          }
-        ]);
+        .insert([{ id: data.user.id, username: username, avatar: uploadedAvatar }]);
 
       if (insertError) {
-        console.error("Остановка на Шаге 4 (Ошибка БД):", insertError.message);
         alert("Ошибка записи в таблицу: " + insertError.message);
         return; 
       }
     }
 
-    console.log("Шаг 5: Всё супер! Переключаем экран.");
-    alert("Регистрация успешна!");
-    loginUser(username, uploadedAvatar, "👤 Участник", data.user ? data.user.id : null);
+    alert("Регистрация успешна!"); 
+    loginUser(username, uploadedAvatar, "👤 Участник");
 
   } catch (err) {
     console.error("Критическая ошибка кода:", err);
   }
 }
 
- async function handleLogin(e) {
+ function handleLogin(e) {
    e.preventDefault();
-   const email = document.getElementById('loginUsername').value;
-   const password = document.getElementById('loginPassword').value;
-
-   try {
-     const { data, error } = await supabaseClient.auth.signInWithPassword({
-       email: email,
-       password: password
-     });
-
-     if (error) {
-       alert("Ошибка входа: " + error.message);
-       return;
-     }
-
-     let username = email.split('@')[0];
-     let avatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-
-     if (data.user) {
-       const { data: profile } = await supabaseClient
-         .from('users')
-         .select('*')
-         .eq('id', data.user.id)
-         .single();
-
-       if (profile) {
-         if (profile.username) username = profile.username;
-         if (profile.avatar) avatar = profile.avatar;
-       }
-     }
-
-     loginUser(username, avatar, "👑 Пользователь", data.user.id);
-   } catch (err) {
-     alert("Ошибка авторизации: " + err.message);
-   }
+   const username = document.getElementById('loginUsername').value || 'User';
+   loginUser(username, 'https://cdn-icons-png.flaticon.com/512/847/847969.png', "👑 Разработчик");
  }
 
  function demoLogin() {
-   loginUser("Demo User", "https://cdn-icons-png.flaticon.com/512/847/847969.png", "⭐ Тестировщик", "demo-id");
+   loginUser("Demo User", "https://cdn-icons-png.flaticon.com/512/847/847969.png", "⭐ Тестировщик");
  }
 
- function loginUser(name, avatar, role, userId = null) {
-   currentUser = { id: userId, name, avatar, role };
+ function loginUser(name, avatar, role) {
+   currentUser = { name, avatar, role, badge: '' }; // Добавили поле значка
    document.getElementById('authScreen').classList.remove('active');
    document.getElementById('mainApp').classList.add('active');
    document.getElementById('settingsNickInput').value = name;
    document.getElementById('settingsAvatarPreview').style.backgroundImage = `url('${avatar}')`;
    renderDialogs();
-   subscribeToRealtime();
- }
-
- function subscribeToRealtime() {
-   supabaseClient
-     .channel('public:messages')
-     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-       const m = payload.new;
-       if (!messages[m.chat_id]) messages[m.chat_id] = [];
-       if (!messages[m.chat_id].some(item => item.id === m.id)) {
-         messages[m.chat_id].push({
-           id: m.id,
-           author: m.author_name || 'Аноним',
-           role: m.author_role || '👤 Участник',
-           text: m.content,
-           isVoice: m.is_voice,
-           my: currentUser && m.user_id === currentUser.id
-         });
-         if (currentChatId === m.chat_id) {
-           renderMessages();
-         }
-       }
-     })
-     .subscribe();
  }
 
  function renderDialogs() {
@@ -778,47 +774,22 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    });
  }
 
- async function selectChat(id) {
+ function selectChat(id) {
    currentChatId = id;
    renderDialogs();
    const chat = dialogs.find(d => d.id === id);
-   document.getElementById('chatName').innerText = chat ? chat.name : '';
-   document.getElementById('chatSub').innerText = chat ? (chat.sub || '') : '';
+   document.getElementById('chatName').innerText = chat.name;
+   document.getElementById('chatSub').innerText = chat.sub || '';
    const av = document.getElementById('chatAvatar');
    av.style.display = 'block';
-   if (chat) av.style.backgroundImage = `url('${chat.avatar}')`;
-   
-   await loadChatMessages(id);
+   av.style.backgroundImage = `url('${chat.avatar}')`;
+   renderMessages();
 
    if(window.innerWidth <= 768) {
      document.getElementById('sidebar').classList.add('hidden');
      document.getElementById('chatWindow').classList.add('active');
      document.getElementById('backBtn').style.display = 'flex';
    }
- }
-
- async function loadChatMessages(chatId) {
-   try {
-     const { data, error } = await supabaseClient
-       .from('messages')
-       .select('*')
-       .eq('chat_id', chatId)
-       .order('id', { ascending: true });
-
-     if (!error && data && data.length > 0) {
-       messages[chatId] = data.map(m => ({
-         id: m.id,
-         author: m.author_name || 'User',
-         role: m.author_role || '👤 Участник',
-         text: m.content,
-         isVoice: m.is_voice,
-         my: currentUser && m.user_id === currentUser.id
-       }));
-     }
-   } catch (err) {
-     console.log("Загрузка локальных данных или таблица сообщений еще не создана:", err);
-   }
-   renderMessages();
  }
 
  function showSidebar() {
@@ -858,9 +829,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
        contentHtml = m.text;
      }
 
+     let badgeHtml = m.badge ? `<span class="msg-badge">${m.badge}</span>` : '';
+
      div.innerHTML = `
        <div class="msg-author">
-         ${m.author}
+         ${m.author} ${badgeHtml}
          <span class="role-badge">${m.role || '👤 Участник'}</span>
        </div>
        ${contentHtml}
@@ -870,38 +843,23 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    container.scrollTop = container.scrollHeight;
  }
 
- async function sendMessage() {
+ function sendMessage() {
    const input = document.getElementById('messageInput');
    const txt = input.value.trim();
    if(!txt || !currentChatId) return;
 
-   const localMsg = {
+   if(!messages[currentChatId]) messages[currentChatId] = [];
+   messages[currentChatId].push({
      id: Date.now(),
-     author: currentUser ? currentUser.name : 'User',
-     role: currentUser ? currentUser.role : '👤 Участник',
+     author: currentUser.name,
+     role: currentUser.role,
+     badge: currentUser.badge || '',
      text: txt,
      my: true
-   };
+   });
 
-   if(!messages[currentChatId]) messages[currentChatId] = [];
-   messages[currentChatId].push(localMsg);
    input.value = '';
    renderMessages();
-
-   try {
-     await supabaseClient.from('messages').insert([
-       {
-         chat_id: currentChatId,
-         user_id: currentUser ? currentUser.id : null,
-         author_name: currentUser ? currentUser.name : 'User',
-         author_role: currentUser ? currentUser.role : '👤 Участник',
-         content: txt,
-         is_voice: false
-       }
-     ]);
-   } catch (err) {
-     console.error("Ошибка сохранения в DB:", err);
-   }
  }
 
  function toggleVoiceRecord() {
@@ -923,8 +881,9 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
      if(!messages[currentChatId]) messages[currentChatId] = [];
      messages[currentChatId].push({
        id: Date.now(),
-       author: currentUser ? currentUser.name : 'User',
-       role: currentUser ? currentUser.role : '👤 Участник',
+       author: currentUser.name,
+       role: currentUser.role,
+       badge: currentUser.badge || '',
        isVoice: true,
        my: true
      });
@@ -945,6 +904,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
  function openCreateModal() { document.getElementById('createModal').classList.add('active'); }
  function openSettings() { document.getElementById('settingsOverlay').classList.add('active'); }
+ function openAdminPanel() { document.getElementById('adminOverlay').classList.add('active'); }
  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
  function createNewDialog() {
@@ -996,32 +956,25 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    });
  }
 
- async function saveProfileData() {
+ /* ВЫБОР ЗНАЧКА */
+ function selectBadge(el, badge) {
+   document.querySelectorAll('#badgeSelection .badge-item').forEach(b => b.classList.remove('active'));
+   el.classList.add('active');
+   currentUser.badge = badge;
+ }
+
+ function saveProfileData() {
    const newName = document.getElementById('settingsNickInput').value.trim();
-   if(newName && currentUser) {
-     currentUser.name = newName;
-     if (currentUser.id) {
-       await supabaseClient
-         .from('users')
-         .update({ username: newName })
-         .eq('id', currentUser.id);
-     }
-   }
+   if(newName) currentUser.name = newName;
    showCustomModal("Успех", "Данные профиля обновлены!");
-   renderMessages();
+   renderMessages(); // Перерендерим чат, чтобы обновить ник и бейдж
  }
 
  function changeAvatarUrl() {
-   showCustomModal("Сменить аватар", "Введите URL аватарки:", true, async (url) => {
-     if(url && currentUser) {
+   showCustomModal("Сменить аватар", "Введите URL аватарки:", true, (url) => {
+     if(url) {
        currentUser.avatar = url;
        document.getElementById('settingsAvatarPreview').style.backgroundImage = `url('${url}')`;
-       if (currentUser.id) {
-         await supabaseClient
-           .from('users')
-           .update({ avatar: url })
-           .eq('id', currentUser.id);
-       }
      }
    });
  }
@@ -1037,7 +990,6 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  }
 
  function logout() {
-   supabaseClient.auth.signOut();
    location.reload();
  }
 
@@ -1068,6 +1020,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
    modal.classList.add('active');
  }
+ 
  </script>
  <script>
   if ('serviceWorker' in navigator) {

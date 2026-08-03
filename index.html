@@ -216,7 +216,7 @@
    .nav-btn { white-space: nowrap; } 
  }
  </style>
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -618,9 +618,9 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
  async function submitRegistration() {
   console.log("Шаг 1: Кнопка нажата, собираем данные...");
-  const email = document.getElementById('regEmail').value;
+  const email = document.getElementById('regEmail').value.trim();
   const password = document.getElementById('regPassword').value;
-  const username = document.getElementById('regUsername').value || 'NewUser';
+  const username = document.getElementById('regUsername').value.trim() || 'NewUser';
   
   if (!email || !password) {
     console.log("Остановка: пустой email или пароль");
@@ -629,7 +629,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   }
 
   try {
-    console.log("Шаг 2: Отправляем данные в Supabase Auth...", email, password);
+    console.log("Шаг 2: Отправляем данные в Supabase Auth...", email);
     const { data, error } = await supabaseClient.auth.signUp({
       email: email,
       password: password,
@@ -644,12 +644,13 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log("Шаг 3: Авторизация прошла успешно! Пользователь:", data.user);
     
     if (data.user) {
-      console.log("Шаг 4: Пытаемся сохранить никнейм в таблицу users...");
+      console.log("Шаг 4: Пытаемся сохранить профиль в таблицу users...");
       const { error: insertError } = await supabaseClient
         .from('users') 
         .insert([
           { 
             id: data.user.id,
+            email: email,
             username: username, 
             avatar: uploadedAvatar 
           }
@@ -662,8 +663,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       }
     }
 
-    console.log("Шаг 5: Всё супер! Переключаем экран.");
-    alert("Регистрация успешна!"); // Окно для проверки
+    console.log("Шаг 5: Регистрация успешна.");
+    alert("Регистрация успешна!");
     loginUser(username, uploadedAvatar, "👤 Участник");
 
   } catch (err) {
@@ -671,10 +672,66 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   }
 }
 
- function handleLogin(e) {
+ async function handleLogin(e) {
    e.preventDefault();
-   const username = document.getElementById('loginUsername').value || 'User';
-   loginUser(username, 'https://cdn-icons-png.flaticon.com/512/847/847969.png', "👑 Разработчик");
+   const loginInput = document.getElementById('loginUsername').value.trim();
+   const password = document.getElementById('loginPassword').value;
+
+   if (!loginInput || !password) {
+     alert("Заполните все поля!");
+     return;
+   }
+
+   try {
+     let email = loginInput;
+
+     // Если введён никнейм вместо email (нет знака @), ищем email в таблице users
+     if (!loginInput.includes('@')) {
+       const { data: userRecord, error: userErr } = await supabaseClient
+         .from('users')
+         .select('email, username, avatar')
+         .eq('username', loginInput)
+         .maybeSingle();
+
+       if (userErr || !userRecord || !userRecord.email) {
+         alert("Пользователь с таким никнеймом не найден!");
+         return;
+       }
+       email = userRecord.email;
+     }
+
+     // Авторизация в Supabase Auth
+     const { data, error } = await supabaseClient.auth.signInWithPassword({
+       email: email,
+       password: password,
+     });
+
+     if (error) {
+       alert("Ошибка входа: " + error.message);
+       return;
+     }
+
+     // Получение актуального профиля из базы данных
+     let username = loginInput.includes('@') ? loginInput.split('@')[0] : loginInput;
+     let avatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+
+     const { data: profile } = await supabaseClient
+       .from('users')
+       .select('username, avatar')
+       .eq('id', data.user.id)
+       .maybeSingle();
+
+     if (profile) {
+       if (profile.username) username = profile.username;
+       if (profile.avatar) avatar = profile.avatar;
+     }
+
+     loginUser(username, avatar, "👤 Пользователь");
+
+   } catch (err) {
+     console.error("Ошибка входа:", err);
+     alert("Произошла ошибка при попытке войти.");
+   }
  }
 
  function demoLogin() {

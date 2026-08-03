@@ -237,7 +237,7 @@
 
      <!-- ФОРМА ВХОДА -->
      <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
-       <input type="text" id="loginUsername" class="settings-input" placeholder="Никнейм или Email" required>
+       <input type="email" id="loginUsername" class="settings-input" placeholder="Email" required>
        <input type="password" id="loginPassword" class="settings-input" placeholder="Пароль" required>
        <button type="submit" class="btn" style="margin-top: 10px;" data-i18n="loginBtn">Войти</button>
      </form>
@@ -258,7 +258,7 @@
        <!-- Шаг 2: Пароль -->
        <div id="step-2" class="reg-step">
          <h3 style="font-size: 15px; margin-bottom: 5px; color: var(--accent);">Шаг 2: Пароль</h3>
-         <input type="password" id="regPassword" class="settings-input" placeholder="Минимум 4 символа" required>
+         <input type="password" id="regPassword" class="settings-input" placeholder="Минимум 6 символов" required>
          <div class="btn-group">
            <button type="button" class="btn outline" onclick="prevRegStep(2)">Назад</button>
            <button type="button" class="btn" onclick="nextRegStep(2)">Далее</button>
@@ -516,9 +516,11 @@
 const SUPABASE_URL = 'https://cgbfqznwdfremepyatef.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnYmZxem53ZGZyZW1lcHlhdGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNTM0ODcsImV4cCI6MjEwMDcyOTQ4N30.OWpxicJy7C-dynPWpeZc--Kte1oe2NXtZ16zeUdooWM';
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
  let currentUser = null;
  let currentChatId = null;
  let isRecording = false;
+ let realtimeChannel = null;
  let uploadedAvatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
  let currentLang = localStorage.getItem('nexa_lang') || 'ru';
 
@@ -618,18 +620,17 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
  async function submitRegistration() {
   console.log("Шаг 1: Кнопка нажата, собираем данные...");
-  const email = document.getElementById('regEmail').value.trim();
+  const email = document.getElementById('regEmail').value;
   const password = document.getElementById('regPassword').value;
-  const username = document.getElementById('regUsername').value.trim() || 'NewUser';
+  const username = document.getElementById('regUsername').value || 'NewUser';
   
   if (!email || !password) {
-    console.log("Остановка: пустой email или пароль");
-    alert("Заполните email и пароль!");
+    showCustomModal("Ошибка", "Заполните email и пароль!");
     return;
   }
 
   try {
-    console.log("Шаг 2: Отправляем данные в Supabase Auth...", email);
+    console.log("Шаг 2: Отправляем данные в Supabase Auth...", email, password);
     const { data, error } = await supabaseClient.auth.signUp({
       email: email,
       password: password,
@@ -637,20 +638,19 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     if (error) {
       console.error("Остановка на Шаге 2 (Ошибка Auth):", error.message);
-      alert("Ошибка при регистрации: " + error.message);
+      showCustomModal("Ошибка регистрации", error.message);
       return; 
     }
 
     console.log("Шаг 3: Авторизация прошла успешно! Пользователь:", data.user);
     
     if (data.user) {
-      console.log("Шаг 4: Пытаемся сохранить профиль в таблицу users...");
+      console.log("Шаг 4: Пытаемся сохранить никнейм в таблицу users...");
       const { error: insertError } = await supabaseClient
         .from('users') 
         .insert([
           { 
             id: data.user.id,
-            email: email,
             username: username, 
             avatar: uploadedAvatar 
           }
@@ -658,79 +658,58 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       if (insertError) {
         console.error("Остановка на Шаге 4 (Ошибка БД):", insertError.message);
-        alert("Ошибка записи в таблицу: " + insertError.message);
-        return; 
+        showCustomModal("Предупреждение", "Аккаунт создан, но профиль не сохранен: " + insertError.message);
       }
     }
 
-    console.log("Шаг 5: Регистрация успешна.");
-    alert("Регистрация успешна!");
+    showCustomModal("Успех", "Регистрация завершена!");
     loginUser(username, uploadedAvatar, "👤 Участник");
 
   } catch (err) {
     console.error("Критическая ошибка кода:", err);
+    showCustomModal("Ошибка", "Произошла системная ошибка: " + err.message);
   }
 }
 
  async function handleLogin(e) {
    e.preventDefault();
-   const loginInput = document.getElementById('loginUsername').value.trim();
+   const email = document.getElementById('loginUsername').value.trim();
    const password = document.getElementById('loginPassword').value;
 
-   if (!loginInput || !password) {
-     alert("Заполните все поля!");
+   if(!email || !password) {
+     showCustomModal("Ошибка", "Введите email и пароль!");
      return;
    }
 
    try {
-     let email = loginInput;
-
-     // Если введён никнейм вместо email (нет знака @), ищем email в таблице users
-     if (!loginInput.includes('@')) {
-       const { data: userRecord, error: userErr } = await supabaseClient
-         .from('users')
-         .select('email, username, avatar')
-         .eq('username', loginInput)
-         .maybeSingle();
-
-       if (userErr || !userRecord || !userRecord.email) {
-         alert("Пользователь с таким никнеймом не найден!");
-         return;
-       }
-       email = userRecord.email;
-     }
-
-     // Авторизация в Supabase Auth
      const { data, error } = await supabaseClient.auth.signInWithPassword({
        email: email,
        password: password,
      });
 
      if (error) {
-       alert("Ошибка входа: " + error.message);
+       showCustomModal("Ошибка входа", error.message);
        return;
      }
 
-     // Получение актуального профиля из базы данных
-     let username = loginInput.includes('@') ? loginInput.split('@')[0] : loginInput;
+     let username = email.split('@')[0];
      let avatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
-     const { data: profile } = await supabaseClient
+     const { data: userProfile } = await supabaseClient
        .from('users')
        .select('username, avatar')
        .eq('id', data.user.id)
-       .maybeSingle();
+       .single();
 
-     if (profile) {
-       if (profile.username) username = profile.username;
-       if (profile.avatar) avatar = profile.avatar;
+     if (userProfile) {
+       if(userProfile.username) username = userProfile.username;
+       if(userProfile.avatar) avatar = userProfile.avatar;
      }
 
      loginUser(username, avatar, "👤 Пользователь");
-
-   } catch (err) {
-     console.error("Ошибка входа:", err);
-     alert("Произошла ошибка при попытке войти.");
+   } catch(err) {
+     console.error("Ошибка авторизации:", err);
+     showCustomModal("Ошибка", "Не удалось войти: " + err.message);
    }
  }
 
@@ -778,22 +757,74 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    });
  }
 
- function selectChat(id) {
+ async function selectChat(id) {
    currentChatId = id;
    renderDialogs();
    const chat = dialogs.find(d => d.id === id);
-   document.getElementById('chatName').innerText = chat.name;
-   document.getElementById('chatSub').innerText = chat.sub || '';
-   const av = document.getElementById('chatAvatar');
-   av.style.display = 'block';
-   av.style.backgroundImage = `url('${chat.avatar}')`;
-   renderMessages();
+   if(chat) {
+     document.getElementById('chatName').innerText = chat.name;
+     document.getElementById('chatSub').innerText = chat.sub || '';
+     const av = document.getElementById('chatAvatar');
+     av.style.display = 'block';
+     av.style.backgroundImage = `url('${chat.avatar}')`;
+   }
+
+   await loadMessages(id);
+   subscribeToChatRealtime(id);
 
    if(window.innerWidth <= 768) {
      document.getElementById('sidebar').classList.add('hidden');
      document.getElementById('chatWindow').classList.add('active');
      document.getElementById('backBtn').style.display = 'flex';
    }
+ }
+
+ async function loadMessages(chatId) {
+   try {
+     const { data, error } = await supabaseClient
+       .from('messages')
+       .select('*')
+       .eq('chat_id', chatId)
+       .order('created_at', { ascending: true });
+
+     if (!error && data && data.length > 0) {
+       messages[chatId] = data.map(m => ({
+         id: m.id,
+         author: m.author,
+         role: m.role || '👤 Участник',
+         text: m.text,
+         isVoice: m.is_voice,
+         my: currentUser ? m.author === currentUser.name : false
+       }));
+     }
+   } catch(e) {
+     console.warn("База Supabase не отвечает, используются локальные сообщения", e);
+   }
+   renderMessages();
+ }
+
+ function subscribeToChatRealtime(chatId) {
+   if (realtimeChannel) {
+     supabaseClient.removeChannel(realtimeChannel);
+   }
+
+   realtimeChannel = supabaseClient
+     .channel(`public:messages:chat_${chatId}`)
+     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, payload => {
+       const m = payload.new;
+       if (currentUser && m.author === currentUser.name) return; // пропуск своего дубля
+       if (!messages[chatId]) messages[chatId] = [];
+       messages[chatId].push({
+         id: m.id,
+         author: m.author,
+         role: m.role || '👤 Участник',
+         text: m.text,
+         isVoice: m.is_voice,
+         my: false
+       });
+       renderMessages();
+     })
+     .subscribe();
  }
 
  function showSidebar() {
@@ -845,22 +876,39 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    container.scrollTop = container.scrollHeight;
  }
 
- function sendMessage() {
+ async function sendMessage() {
    const input = document.getElementById('messageInput');
    const txt = input.value.trim();
    if(!txt || !currentChatId) return;
 
+   const authorName = currentUser ? currentUser.name : 'User';
+   const userRole = currentUser ? currentUser.role : '👤 Участник';
+
    if(!messages[currentChatId]) messages[currentChatId] = [];
    messages[currentChatId].push({
      id: Date.now(),
-     author: currentUser.name,
-     role: currentUser.role,
+     author: authorName,
+     role: userRole,
      text: txt,
      my: true
    });
 
    input.value = '';
    renderMessages();
+
+   try {
+     await supabaseClient.from('messages').insert([
+       {
+         chat_id: currentChatId,
+         author: authorName,
+         role: userRole,
+         text: txt,
+         is_voice: false
+       }
+     ]);
+   } catch(err) {
+     console.error("Ошибка сохранения сообщения в БД:", err);
+   }
  }
 
  function toggleVoiceRecord() {
@@ -879,12 +927,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
      btn.classList.remove('recording');
      btn.innerText = '🎙️';
      
-     // Отправка голосового сообщения
      if(!messages[currentChatId]) messages[currentChatId] = [];
      messages[currentChatId].push({
        id: Date.now(),
-       author: currentUser.name,
-       role: currentUser.role,
+       author: currentUser ? currentUser.name : 'User',
+       role: currentUser ? currentUser.role : '👤 Участник',
        isVoice: true,
        my: true
      });
@@ -956,24 +1003,47 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    });
  }
 
- function saveProfileData() {
+ async function saveProfileData() {
    const newName = document.getElementById('settingsNickInput').value.trim();
-   if(newName) currentUser.name = newName;
+   if(newName && currentUser) {
+     currentUser.name = newName;
+     const user = (await supabaseClient.auth.getUser()).data?.user;
+     if (user) {
+       await supabaseClient.from('users').update({ username: newName }).eq('id', user.id);
+     }
+   }
    showCustomModal("Успех", "Данные профиля обновлены!");
    renderMessages();
  }
 
  function changeAvatarUrl() {
-   showCustomModal("Сменить аватар", "Введите URL аватарки:", true, (url) => {
-     if(url) {
+   showCustomModal("Сменить аватар", "Введите URL аватарки:", true, async (url) => {
+     if(url && currentUser) {
        currentUser.avatar = url;
        document.getElementById('settingsAvatarPreview').style.backgroundImage = `url('${url}')`;
+       const user = (await supabaseClient.auth.getUser()).data?.user;
+       if (user) {
+         await supabaseClient.from('users').update({ avatar: url }).eq('id', user.id);
+       }
      }
    });
  }
 
- function changePassword() {
-   showCustomModal("Успех", "Пароль успешно обновлен!");
+ async function changePassword() {
+   const newPwd = document.getElementById('newPwd').value;
+   if (!newPwd || newPwd.length < 6) {
+     showCustomModal("Ошибка", "Новый пароль должен содержать от 6 символов!");
+     return;
+   }
+   try {
+     const { error } = await supabaseClient.auth.updateUser({ password: newPwd });
+     if (error) throw error;
+     showCustomModal("Успех", "Пароль успешно обновлен!");
+     document.getElementById('oldPwd').value = '';
+     document.getElementById('newPwd').value = '';
+   } catch(e) {
+     showCustomModal("Ошибка", e.message);
+   }
  }
 
  function clearCache() {
@@ -982,13 +1052,14 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    showCustomModal("Память", "Кэш сообщений успешно очищен!");
  }
 
- function logout() {
+ async function logout() {
+   await supabaseClient.auth.signOut();
    location.reload();
  }
 
  function deleteAccount() {
-   showCustomModal("Удаление", "Аккаунт удален.");
-   setTimeout(() => location.reload(), 1000);
+   showCustomModal("Удаление", "Запрос на удаление аккаунта отправлен.");
+   setTimeout(() => logout(), 1000);
  }
 
  function showCustomModal(title, text, hasInput = false, onOk = null) {
@@ -1017,9 +1088,16 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  </script>
  <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('Service Worker зарегистрирован!'))
-      .catch((err) => console.log('Ошибка:', err));
+    const swCode = `
+      self.addEventListener('install', e => self.skipWaiting());
+      self.addEventListener('activate', e => self.clients.claim());
+      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline'))));
+    `;
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      navigator.serviceWorker.register(swUrl);
+    });
   }
 </script>
 </body>

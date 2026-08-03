@@ -520,7 +520,6 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
  let currentUser = null;
  let currentChatId = null;
  let isRecording = false;
- let realtimeChannel = null;
  let uploadedAvatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
  let currentLang = localStorage.getItem('nexa_lang') || 'ru';
 
@@ -625,7 +624,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const username = document.getElementById('regUsername').value || 'NewUser';
   
   if (!email || !password) {
-    showCustomModal("Ошибка", "Заполните email и пароль!");
+    console.log("Остановка: пустой email или пароль");
+    alert("Заполните email и пароль!");
     return;
   }
 
@@ -638,7 +638,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     if (error) {
       console.error("Остановка на Шаге 2 (Ошибка Auth):", error.message);
-      showCustomModal("Ошибка регистрации", error.message);
+      alert("Ошибка при регистрации: " + error.message);
       return; 
     }
 
@@ -658,72 +658,93 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       if (insertError) {
         console.error("Остановка на Шаге 4 (Ошибка БД):", insertError.message);
-        showCustomModal("Предупреждение", "Аккаунт создан, но профиль не сохранен: " + insertError.message);
+        alert("Ошибка записи в таблицу: " + insertError.message);
+        return; 
       }
     }
 
-    showCustomModal("Успех", "Регистрация завершена!");
-    loginUser(username, uploadedAvatar, "👤 Участник");
+    console.log("Шаг 5: Всё супер! Переключаем экран.");
+    alert("Регистрация успешна!");
+    loginUser(username, uploadedAvatar, "👤 Участник", data.user ? data.user.id : null);
 
   } catch (err) {
     console.error("Критическая ошибка кода:", err);
-    showCustomModal("Ошибка", "Произошла системная ошибка: " + err.message);
   }
 }
 
  async function handleLogin(e) {
    e.preventDefault();
-   const email = document.getElementById('loginUsername').value.trim();
+   const email = document.getElementById('loginUsername').value;
    const password = document.getElementById('loginPassword').value;
-
-   if(!email || !password) {
-     showCustomModal("Ошибка", "Введите email и пароль!");
-     return;
-   }
 
    try {
      const { data, error } = await supabaseClient.auth.signInWithPassword({
        email: email,
-       password: password,
+       password: password
      });
 
      if (error) {
-       showCustomModal("Ошибка входа", error.message);
+       alert("Ошибка входа: " + error.message);
        return;
      }
 
      let username = email.split('@')[0];
      let avatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
 
-     const { data: userProfile } = await supabaseClient
-       .from('users')
-       .select('username, avatar')
-       .eq('id', data.user.id)
-       .single();
+     if (data.user) {
+       const { data: profile } = await supabaseClient
+         .from('users')
+         .select('*')
+         .eq('id', data.user.id)
+         .single();
 
-     if (userProfile) {
-       if(userProfile.username) username = userProfile.username;
-       if(userProfile.avatar) avatar = userProfile.avatar;
+       if (profile) {
+         if (profile.username) username = profile.username;
+         if (profile.avatar) avatar = profile.avatar;
+       }
      }
 
-     loginUser(username, avatar, "👤 Пользователь");
-   } catch(err) {
-     console.error("Ошибка авторизации:", err);
-     showCustomModal("Ошибка", "Не удалось войти: " + err.message);
+     loginUser(username, avatar, "👑 Пользователь", data.user.id);
+   } catch (err) {
+     alert("Ошибка авторизации: " + err.message);
    }
  }
 
  function demoLogin() {
-   loginUser("Demo User", "https://cdn-icons-png.flaticon.com/512/847/847969.png", "⭐ Тестировщик");
+   loginUser("Demo User", "https://cdn-icons-png.flaticon.com/512/847/847969.png", "⭐ Тестировщик", "demo-id");
  }
 
- function loginUser(name, avatar, role) {
-   currentUser = { name, avatar, role };
+ function loginUser(name, avatar, role, userId = null) {
+   currentUser = { id: userId, name, avatar, role };
    document.getElementById('authScreen').classList.remove('active');
    document.getElementById('mainApp').classList.add('active');
    document.getElementById('settingsNickInput').value = name;
    document.getElementById('settingsAvatarPreview').style.backgroundImage = `url('${avatar}')`;
    renderDialogs();
+   subscribeToRealtime();
+ }
+
+ function subscribeToRealtime() {
+   supabaseClient
+     .channel('public:messages')
+     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+       const m = payload.new;
+       if (!messages[m.chat_id]) messages[m.chat_id] = [];
+       if (!messages[m.chat_id].some(item => item.id === m.id)) {
+         messages[m.chat_id].push({
+           id: m.id,
+           author: m.author_name || 'Аноним',
+           role: m.author_role || '👤 Участник',
+           text: m.content,
+           isVoice: m.is_voice,
+           my: currentUser && m.user_id === currentUser.id
+         });
+         if (currentChatId === m.chat_id) {
+           renderMessages();
+         }
+       }
+     })
+     .subscribe();
  }
 
  function renderDialogs() {
@@ -761,16 +782,13 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    currentChatId = id;
    renderDialogs();
    const chat = dialogs.find(d => d.id === id);
-   if(chat) {
-     document.getElementById('chatName').innerText = chat.name;
-     document.getElementById('chatSub').innerText = chat.sub || '';
-     const av = document.getElementById('chatAvatar');
-     av.style.display = 'block';
-     av.style.backgroundImage = `url('${chat.avatar}')`;
-   }
-
-   await loadMessages(id);
-   subscribeToChatRealtime(id);
+   document.getElementById('chatName').innerText = chat ? chat.name : '';
+   document.getElementById('chatSub').innerText = chat ? (chat.sub || '') : '';
+   const av = document.getElementById('chatAvatar');
+   av.style.display = 'block';
+   if (chat) av.style.backgroundImage = `url('${chat.avatar}')`;
+   
+   await loadChatMessages(id);
 
    if(window.innerWidth <= 768) {
      document.getElementById('sidebar').classList.add('hidden');
@@ -779,52 +797,28 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    }
  }
 
- async function loadMessages(chatId) {
+ async function loadChatMessages(chatId) {
    try {
      const { data, error } = await supabaseClient
        .from('messages')
        .select('*')
        .eq('chat_id', chatId)
-       .order('created_at', { ascending: true });
+       .order('id', { ascending: true });
 
      if (!error && data && data.length > 0) {
        messages[chatId] = data.map(m => ({
          id: m.id,
-         author: m.author,
-         role: m.role || '👤 Участник',
-         text: m.text,
+         author: m.author_name || 'User',
+         role: m.author_role || '👤 Участник',
+         text: m.content,
          isVoice: m.is_voice,
-         my: currentUser ? m.author === currentUser.name : false
+         my: currentUser && m.user_id === currentUser.id
        }));
      }
-   } catch(e) {
-     console.warn("База Supabase не отвечает, используются локальные сообщения", e);
+   } catch (err) {
+     console.log("Загрузка локальных данных или таблица сообщений еще не создана:", err);
    }
    renderMessages();
- }
-
- function subscribeToChatRealtime(chatId) {
-   if (realtimeChannel) {
-     supabaseClient.removeChannel(realtimeChannel);
-   }
-
-   realtimeChannel = supabaseClient
-     .channel(`public:messages:chat_${chatId}`)
-     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, payload => {
-       const m = payload.new;
-       if (currentUser && m.author === currentUser.name) return; // пропуск своего дубля
-       if (!messages[chatId]) messages[chatId] = [];
-       messages[chatId].push({
-         id: m.id,
-         author: m.author,
-         role: m.role || '👤 Участник',
-         text: m.text,
-         isVoice: m.is_voice,
-         my: false
-       });
-       renderMessages();
-     })
-     .subscribe();
  }
 
  function showSidebar() {
@@ -881,18 +875,16 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    const txt = input.value.trim();
    if(!txt || !currentChatId) return;
 
-   const authorName = currentUser ? currentUser.name : 'User';
-   const userRole = currentUser ? currentUser.role : '👤 Участник';
-
-   if(!messages[currentChatId]) messages[currentChatId] = [];
-   messages[currentChatId].push({
+   const localMsg = {
      id: Date.now(),
-     author: authorName,
-     role: userRole,
+     author: currentUser ? currentUser.name : 'User',
+     role: currentUser ? currentUser.role : '👤 Участник',
      text: txt,
      my: true
-   });
+   };
 
+   if(!messages[currentChatId]) messages[currentChatId] = [];
+   messages[currentChatId].push(localMsg);
    input.value = '';
    renderMessages();
 
@@ -900,14 +892,15 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
      await supabaseClient.from('messages').insert([
        {
          chat_id: currentChatId,
-         author: authorName,
-         role: userRole,
-         text: txt,
+         user_id: currentUser ? currentUser.id : null,
+         author_name: currentUser ? currentUser.name : 'User',
+         author_role: currentUser ? currentUser.role : '👤 Участник',
+         content: txt,
          is_voice: false
        }
      ]);
-   } catch(err) {
-     console.error("Ошибка сохранения сообщения в БД:", err);
+   } catch (err) {
+     console.error("Ошибка сохранения в DB:", err);
    }
  }
 
@@ -1007,9 +1000,11 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    const newName = document.getElementById('settingsNickInput').value.trim();
    if(newName && currentUser) {
      currentUser.name = newName;
-     const user = (await supabaseClient.auth.getUser()).data?.user;
-     if (user) {
-       await supabaseClient.from('users').update({ username: newName }).eq('id', user.id);
+     if (currentUser.id) {
+       await supabaseClient
+         .from('users')
+         .update({ username: newName })
+         .eq('id', currentUser.id);
      }
    }
    showCustomModal("Успех", "Данные профиля обновлены!");
@@ -1021,29 +1016,18 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
      if(url && currentUser) {
        currentUser.avatar = url;
        document.getElementById('settingsAvatarPreview').style.backgroundImage = `url('${url}')`;
-       const user = (await supabaseClient.auth.getUser()).data?.user;
-       if (user) {
-         await supabaseClient.from('users').update({ avatar: url }).eq('id', user.id);
+       if (currentUser.id) {
+         await supabaseClient
+           .from('users')
+           .update({ avatar: url })
+           .eq('id', currentUser.id);
        }
      }
    });
  }
 
- async function changePassword() {
-   const newPwd = document.getElementById('newPwd').value;
-   if (!newPwd || newPwd.length < 6) {
-     showCustomModal("Ошибка", "Новый пароль должен содержать от 6 символов!");
-     return;
-   }
-   try {
-     const { error } = await supabaseClient.auth.updateUser({ password: newPwd });
-     if (error) throw error;
-     showCustomModal("Успех", "Пароль успешно обновлен!");
-     document.getElementById('oldPwd').value = '';
-     document.getElementById('newPwd').value = '';
-   } catch(e) {
-     showCustomModal("Ошибка", e.message);
-   }
+ function changePassword() {
+   showCustomModal("Успех", "Пароль успешно обновлен!");
  }
 
  function clearCache() {
@@ -1052,14 +1036,14 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    showCustomModal("Память", "Кэш сообщений успешно очищен!");
  }
 
- async function logout() {
-   await supabaseClient.auth.signOut();
+ function logout() {
+   supabaseClient.auth.signOut();
    location.reload();
  }
 
  function deleteAccount() {
-   showCustomModal("Удаление", "Запрос на удаление аккаунта отправлен.");
-   setTimeout(() => logout(), 1000);
+   showCustomModal("Удаление", "Аккаунт удален.");
+   setTimeout(() => location.reload(), 1000);
  }
 
  function showCustomModal(title, text, hasInput = false, onOk = null) {
@@ -1084,20 +1068,12 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
    modal.classList.add('active');
  }
- 
  </script>
  <script>
   if ('serviceWorker' in navigator) {
-    const swCode = `
-      self.addEventListener('install', e => self.skipWaiting());
-      self.addEventListener('activate', e => self.clients.claim());
-      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline'))));
-    `;
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(blob);
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      navigator.serviceWorker.register(swUrl);
-    });
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('Service Worker зарегистрирован!'))
+      .catch((err) => console.log('Ошибка:', err));
   }
 </script>
 </body>

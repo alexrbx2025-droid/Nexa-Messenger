@@ -66,7 +66,6 @@
       font-size: var(--app-font-size);
     }
 
-    /* Кастомный скроллбар */
     ::-webkit-scrollbar {
       width: 5px;
       height: 5px;
@@ -83,7 +82,7 @@
     }
 
     /* ==========================================================================
-       2. ЖИВОЙ ФОН И АНИМАЦИИ (LIQUID BACKGROUND)
+       2. ЖИВОЙ ФОН И АНИМАЦИИ
        ========================================================================== */
     .background-blobs {
       position: fixed;
@@ -142,7 +141,7 @@
     }
 
     /* ==========================================================================
-       3. ЭКРАНЫ И АВТОРИЗАЦИЯ / ПОШАГОВАЯ РЕГИСТРАЦИЯ
+       3. ЭКРАНЫ И АВТОРИЗАЦИЯ
        ========================================================================== */
     .screen {
       display: none;
@@ -230,7 +229,6 @@
       animation: slideIn 0.3s ease-out;
     }
 
-    /* ПОЛЕ С КНОПКОЙ СКРЫТИЯ/ПОКАЗА ПАРОЛЯ */
     .password-wrapper {
       position: relative;
       width: 100%;
@@ -300,7 +298,7 @@
     }
 
     /* ==========================================================================
-       4. ГЛАВНЫЙ ИНТЕРФЕЙС (MAIN MESSENGER UI)
+       4. ГЛАВНЫЙ ИНТЕРФЕЙС
        ========================================================================== */
     #mainApp {
       width: 100%;
@@ -316,7 +314,6 @@
       animation: fadeIn 0.4s ease-out;
     }
 
-    /* САЙДБАР */
     .sidebar {
       width: 340px;
       border-right: 1px solid var(--glass-border);
@@ -412,15 +409,6 @@
       color: var(--text-muted);
       margin-left: auto;
     }
-    .unread-badge {
-      background: var(--accent);
-      color: #000;
-      font-weight: bold;
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 10px;
-      margin-left: 6px;
-    }
 
     .sidebar-footer {
       padding: 12px 16px;
@@ -431,7 +419,6 @@
       background: rgba(0,0,0,0.3);
     }
 
-    /* ОКНО ЧАТА */
     .chat-window {
       flex: 1;
       display: flex;
@@ -464,7 +451,6 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* СООБЩЕНИЯ */
     .msg {
       max-width: 72%;
       padding: 12px 18px;
@@ -521,7 +507,6 @@
       opacity: 0.6;
     }
 
-    /* ПОЛЕ ВВОДА В ЧАТЕ */
     .input-area {
       padding: 14px 20px;
       display: flex;
@@ -548,7 +533,6 @@
       box-shadow: 0 0 12px var(--accent-glow);
     }
 
-    /* КНОПКИ */
     .btn {
       background: var(--accent-gradient);
       color: #000;
@@ -602,9 +586,6 @@
       border-color: var(--accent);
       transform: scale(1.05);
     }
-    .icon-btn:active {
-      transform: scale(0.9);
-    }
 
     .avatar {
       width: 44px;
@@ -618,7 +599,7 @@
     }
 
     /* ==========================================================================
-       5. МОДАЛЬНЫЕ ОКНА И ДВУХКОЛОНОЧНЫЕ НАСТРОЙКИ
+       5. МОДАЛЬНЫЕ ОКНА И АДМИН-ПАНЕЛЬ В РЕАЛЬНОМ ВРЕМЕНИ
        ========================================================================== */
     .modal-overlay {
       display: none;
@@ -627,9 +608,9 @@
       left: 0;
       width: 100%;
       height: 100vh;
-      background: rgba(0, 0, 0, 0.78);
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       justify-content: center;
       align-items: center;
       z-index: 999;
@@ -639,6 +620,120 @@
       animation: fadeIn 0.25s ease-out;
     }
 
+    /* АДМИН МОДАЛКА */
+    .admin-modal {
+      width: 95%;
+      max-width: 900px;
+      height: 85vh;
+      max-height: 720px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      border-radius: var(--border-radius-lg);
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      box-shadow: 0 0 40px rgba(255, 71, 87, 0.15);
+    }
+    .admin-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 14px;
+    }
+
+    .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .stat-card {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--border-radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .stat-card .val {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .stat-card .lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .admin-content-layout {
+      display: flex;
+      flex: 1;
+      gap: 16px;
+      overflow: hidden;
+    }
+    .admin-section {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--border-radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+    .admin-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .realtime-log-stream {
+      flex: 1;
+      overflow-y: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 11px;
+      color: #33ff77;
+      background: rgba(0,0,0,0.6);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .log-entry {
+      opacity: 0.9;
+      word-break: break-all;
+    }
+    .log-entry.event-insert { color: #2ed573; }
+    .log-entry.event-delete { color: #ff4757; }
+
+    .db-table-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .db-table-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    /* ОБЫЧНАЯ МОДАЛКА НАСТРОЕК */
     .settings-modal {
       width: 92%;
       max-width: 800px;
@@ -663,7 +758,6 @@
       gap: 20px;
       overflow: hidden;
     }
-
     .settings-nav {
       width: 200px;
       display: flex;
@@ -693,7 +787,6 @@
       color: var(--accent);
       padding-left: 20px;
     }
-
     .settings-content {
       flex: 1;
       overflow-y: auto;
@@ -709,7 +802,6 @@
     .settings-panel.active {
       display: flex;
     }
-
     .setting-group {
       background: rgba(0, 0, 0, 0.3);
       padding: 16px;
@@ -732,7 +824,6 @@
       align-items: center;
       font-size: 13.5px;
     }
-
     .settings-input {
       width: 100%;
       background: rgba(0, 0, 0, 0.4);
@@ -748,7 +839,6 @@
       border-color: var(--accent);
     }
 
-    /* ЭМОДЗИ ПАНЕЛЬ */
     .emoji-picker {
       position: absolute;
       bottom: 75px;
@@ -781,7 +871,6 @@
       transform: scale(1.2);
     }
 
-    /* TOAST УВЕДОМЛЕНИЯ */
     #toastContainer {
       position: fixed;
       top: 20px;
@@ -804,83 +893,42 @@
       animation: slideInRight 0.3s ease, fadeOut 0.3s 2.7s ease forwards;
     }
 
-    /* ==========================================================================
-       6. АНИМАЦИИ И АДАПТИВ (KEYFRAMES & MEDIA QUERIES)
-       ========================================================================== */
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
-    @keyframes scaleUp { from { opacity: 0; transform: scale(0.93); } to { opacity: 1; transform: scale(1); } }
     @keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
     @keyframes msgIn { to { opacity: 1; transform: translateY(0) scale(1); } }
 
     @media (max-width: 768px) {
-      .sidebar {
-        width: 100%;
-      }
-      .sidebar.hidden {
-        display: none;
-      }
-      .chat-window {
-        display: none;
-      }
-      .chat-window.active {
-        display: flex;
-        animation: slideInRight 0.3s ease;
-      }
-      .settings-modal {
-        width: 100%;
-        height: 100vh;
-        max-height: 100vh;
-        border-radius: 0;
-        padding: 16px;
-      }
-      .settings-layout {
-        flex-direction: column;
-      }
-      .settings-nav {
-        width: 100%;
-        flex-direction: row;
-        border-right: none;
-        border-bottom: 1px solid var(--glass-border);
-        padding-right: 0;
-        padding-bottom: 10px;
-        overflow-x: auto;
-      }
-      .nav-btn {
-        white-space: nowrap;
-        padding-left: 14px !important;
-      }
+      .sidebar { width: 100%; }
+      .sidebar.hidden { display: none; }
+      .chat-window { display: none; }
+      .chat-window.active { display: flex; animation: slideInRight 0.3s ease; }
+      .admin-content-layout { flex-direction: column; }
     }
   </style>
 </head>
 <body>
 
-  <!-- TOAST УВЕДОМЛЕНИЯ -->
   <div id="toastContainer"></div>
 
-  <!-- ЖИВОЙ ФОН -->
   <div class="background-blobs">
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
   </div>
 
-  <!-- ==========================================================================
-     ЭКРАН АВТОРИЗАЦИИ И ПОШАГОВОЙ РЕГИСТРАЦИИ
-     ========================================================================== -->
+  <!-- ЭКРАН АВТОРИЗАЦИИ / ПОШАГОВАЯ РЕГИСТРАЦИЯ -->
   <div id="authScreen" class="screen active">
     <div class="auth-box glass">
       <h2 style="color: var(--accent); margin-bottom: 4px; font-weight: 800; letter-spacing: 1px;">Nexa Messenger</h2>
-      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 22px;">Версия 3.0 • Облачная синхронизация</p>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 22px;">Версия 3.0 Pro • Realtime DB Admin</p>
       
       <div class="auth-tabs">
         <button id="tabLoginBtn" class="auth-tab active" onclick="toggleAuthTab('login')">Вход</button>
         <button id="tabRegBtn" class="auth-tab" onclick="toggleAuthTab('reg')">Регистрация</button>
       </div>
 
-      <!-- ФОРМА ВХОДА -->
       <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
         <input type="text" id="loginUsername" class="settings-input" placeholder="Логин / Имя пользователя" required>
         <div class="password-wrapper">
@@ -890,24 +938,21 @@
         <button type="submit" class="btn" style="margin-top: 8px;">Войти в аккаунт</button>
       </form>
 
-      <!-- ПОШАГОВАЯ ФОРМА РЕГИСТРАЦИИ -->
       <form id="regForm" class="auth-form" onsubmit="handleRegister(event)">
         <div class="progress-container">
           <div id="regProgressBar" class="progress-bar"></div>
         </div>
 
-        <!-- ШАГ 1: Аватарка и Логин -->
         <div id="regStep1" class="reg-step active">
           <div class="avatar-upload-container">
             <div id="avatarPreview" class="avatar-preview" onclick="document.getElementById('avatarFileInput').click()"></div>
             <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="handleAvatarUpload(event)">
-            <span style="font-size: 11px; color: var(--text-muted);">Кликните, чтобы загрузить аватар</span>
+            <span style="font-size: 11px; color: var(--text-muted);">Загрузить аватар</span>
           </div>
           <input type="text" id="regUsername" class="settings-input" placeholder="Придумайте логин" required>
           <button type="button" class="btn" onclick="nextRegStep(2)">Далее →</button>
         </div>
 
-        <!-- ШАГ 2: Пароль (с возможностью просмотра и скрытия) -->
         <div id="regStep2" class="reg-step">
           <div class="password-wrapper">
             <input type="password" id="regPassword" class="settings-input" placeholder="Придумайте пароль" required>
@@ -923,14 +968,13 @@
           </div>
         </div>
 
-        <!-- ШАГ 3: Роль и О себе -->
         <div id="regStep3" class="reg-step">
           <select id="regRole" class="settings-input">
-            <option value="👤 Пользователь">👤 Пользователь</option>
+            <option value="⚡ Администратор">⚡ Администратор</option>
             <option value="💻 Разработчик">💻 Разработчик</option>
             <option value="🎨 Дизайнер">🎨 Дизайнер</option>
             <option value="🧪 Тестировщик">🧪 Тестировщик</option>
-            <option value="⚡ Администратор">⚡ Администратор</option>
+            <option value="👤 Пользователь">👤 Пользователь</option>
           </select>
           <input type="text" id="regBio" class="settings-input" placeholder="Статус / О себе (необязательно)">
           <div class="btn-group">
@@ -939,7 +983,6 @@
           </div>
         </div>
 
-        <!-- ШАГ 4: Подтверждение -->
         <div id="regStep4" class="reg-step">
           <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Проверьте введённые данные:</p>
           <div id="regSummary" style="text-align: left; font-size: 12px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 10px; border: 1px solid var(--glass-border); margin-bottom: 8px; line-height: 1.6;"></div>
@@ -952,21 +995,19 @@
     </div>
   </div>
 
-  <!-- ==========================================================================
-     ГЛАВНОЕ ОКНО ПРИЛОЖЕНИЯ
-     ========================================================================== -->
+  <!-- ГЛАВНЫЙ ИНТЕРФЕЙС -->
   <div id="mainApp" class="glass">
     
-    <!-- САЙДБАР -->
     <div id="sidebar" class="sidebar">
       <div class="sidebar-header">
         <h3 style="letter-spacing: 1px; color: var(--accent); font-weight: 800;">Nexa</h3>
         <div style="display: flex; gap: 8px;">
+          <!-- Кнопка вызова админки -->
+          <button id="adminPanelBtn" class="icon-btn" title="Панель администратора БД" onclick="openAdminModal()" style="display:none; border-color: rgba(255, 71, 87, 0.5); color: #ff4757;">🛡️</button>
           <button class="icon-btn" title="Создать чат/канал" onclick="openCreateModal()">+</button>
         </div>
       </div>
       
-      <!-- Категории чатов -->
       <div class="chat-categories">
         <div class="cat-chip active" onclick="filterCategory('all', this)">Все</div>
         <div class="cat-chip" onclick="filterCategory('group', this)">Группы</div>
@@ -977,12 +1018,10 @@
         <input type="text" id="searchInput" class="search-input" placeholder="Поиск диалогов..." oninput="filterDialogs()">
       </div>
 
-      <!-- Список чатов -->
       <div id="chatsList" class="chat-list">
-        <div style="text-align:center; color: var(--text-muted); margin-top: 30px; font-size: 12px;">Подключение к базе...</div>
+        <div style="text-align:center; color: var(--text-muted); margin-top: 30px; font-size: 12px;">Подключение к БД...</div>
       </div>
 
-      <!-- Футер сайдбара с профилем -->
       <div class="sidebar-footer">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div id="userAvatar" class="avatar"></div>
@@ -995,7 +1034,6 @@
       </div>
     </div>
 
-    <!-- ОКНО ЧАТА -->
     <div id="chatWindow" class="chat-window">
       <div class="chat-header">
         <div class="chat-header-info">
@@ -1007,16 +1045,14 @@
           </div>
         </div>
         <div style="display: flex; gap: 6px;">
-          <button class="icon-btn" title="Очистить" onclick="clearCurrentChatMessages()">🗑️</button>
+          <button class="icon-btn" title="Очистить сообщения" onclick="clearCurrentChatMessages()">🗑️</button>
         </div>
       </div>
       
-      <!-- Контейнер сообщений -->
       <div id="messagesContainer" class="messages-container">
         <div style="text-align:center; color: var(--text-muted); margin-top: 35%; font-size: 13px;">Выберите чат для начала общения</div>
       </div>
       
-      <!-- Панель эмодзи -->
       <div id="emojiPicker" class="emoji-picker">
         <span class="emoji-item" onclick="addEmoji('😀')">😀</span>
         <span class="emoji-item" onclick="addEmoji('😂')">😂</span>
@@ -1032,7 +1068,6 @@
         <span class="emoji-item" onclick="addEmoji('💻')">💻</span>
       </div>
 
-      <!-- Поле ввода -->
       <div class="input-area">
         <button class="icon-btn" style="border:none; background:transparent;" onclick="toggleEmojiPicker()">😊</button>
         <input type="text" id="messageInput" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
@@ -1042,8 +1077,67 @@
   </div>
 
   <!-- ==========================================================================
-     МОДАЛЬНЫЕ ОКНА (СОЗДАНИЕ И ДВУХКОЛОНОЧНЫЕ НАСТРОЙКИ)
+     МОДАЛЬНОЕ ОКНО: ПАНЕЛЬ АДМИНИСТРАТОРА (БД В РЕАЛЬНОМ ВРЕМЕНИ)
      ========================================================================== -->
+  <div id="adminModal" class="modal-overlay">
+    <div class="admin-modal glass">
+      <div class="admin-topbar">
+        <div>
+          <h3 style="color: #ff4757; display: flex; align-items: center; gap: 8px;">
+            🛡️ Панель Администратора БД
+          </h3>
+          <span style="font-size: 11px; color: var(--text-muted);">Real-time Supabase Data Stream & Moderation</span>
+        </div>
+        <button class="icon-btn" onclick="closeModal('adminModal')">✕</button>
+      </div>
+
+      <!-- СТАТИСТИКА В РЕАЛЬНОМ ВРЕМЕНИ -->
+      <div class="admin-stats-grid">
+        <div class="stat-card">
+          <span class="val" id="adminStatChats">0</span>
+          <span class="lbl">Всего диалогов</span>
+        </div>
+        <div class="stat-card">
+          <span class="val" id="adminStatMessages">0</span>
+          <span class="lbl">Всего сообщений</span>
+        </div>
+        <div class="stat-card">
+          <span class="val" id="adminStatStatus" style="color: #2ed573;">ONLINE</span>
+          <span class="lbl">Статус подключения</span>
+        </div>
+        <div class="stat-card">
+          <span class="val" id="adminStatEvents">0</span>
+          <span class="lbl">Событий за сессию</span>
+        </div>
+      </div>
+
+      <!-- КОНТЕНТ АДМИНКИ -->
+      <div class="admin-content-layout">
+        <!-- ЛОГ СОБЫТИЙ В РЕАЛЬНОМ ВРЕМЕНИ -->
+        <div class="admin-section">
+          <div class="admin-section-title">
+            <span>📡 Поток событий БД (Live Stream)</span>
+            <button class="btn outline" style="padding: 2px 8px; font-size: 10px;" onclick="clearAdminLogs()">Очистить</button>
+          </div>
+          <div id="adminRealtimeLog" class="realtime-log-stream">
+            <div class="log-entry">[SYSTEM] Инициализация админ-модуля...</div>
+          </div>
+        </div>
+
+        <!-- УПРАВЛЕНИЕ ДИАЛОГАМИ В БД -->
+        <div class="admin-section">
+          <div class="admin-section-title">
+            <span>🗄️ Список диалогов в БД</span>
+            <button class="btn outline" style="padding: 2px 8px; font-size: 10px;" onclick="fetchAdminData()">Обновить</button>
+          </div>
+          <div id="adminDbTableList" class="db-table-list">
+            <div style="color: var(--text-muted); font-size: 11px; text-align: center;">Загрузка данных...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- МОДАЛКА СОЗДАНИЯ -->
   <div id="createModal" class="modal-overlay">
     <div class="auth-box glass" style="max-width: 380px;">
@@ -1071,7 +1165,6 @@
       </div>
       
       <div class="settings-layout">
-        <!-- Левое меню -->
         <div class="settings-nav">
           <button class="nav-btn active" onclick="switchSettingsTab('general', this)">⚙️ Общие</button>
           <button class="nav-btn" onclick="switchSettingsTab('appearance', this)">🎨 Оформление</button>
@@ -1079,9 +1172,7 @@
           <button class="nav-btn" onclick="switchSettingsTab('about', this)">ℹ️ О программе</button>
         </div>
 
-        <!-- Правая область с вкладками -->
         <div class="settings-content">
-          <!-- Вкладка Общие -->
           <div id="setTabGeneral" class="settings-panel active">
             <div class="setting-group">
               <span class="group-title">Параметры уведомлений</span>
@@ -1096,7 +1187,6 @@
             </div>
           </div>
 
-          <!-- Вкладка Внешний вид -->
           <div id="setTabAppearance" class="settings-panel">
             <div class="setting-group">
               <span class="group-title">Персонализация</span>
@@ -1111,7 +1201,6 @@
             </div>
           </div>
 
-          <!-- Вкладка Аккаунт -->
           <div id="setTabAccount" class="settings-panel">
             <div class="setting-group">
               <span class="group-title">Настройки профиля</span>
@@ -1121,13 +1210,12 @@
             </div>
           </div>
 
-          <!-- Вкладка О программе -->
           <div id="setTabAbout" class="settings-panel">
             <div class="setting-group">
               <span class="group-title">Nexa Core</span>
               <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
-                <strong>Nexa Messenger</strong> — защищённая облачная платформа для мгновенного обмена сообщениями.<br><br>
-                Версия: 3.0.4 Pro<br>
+                <strong>Nexa Messenger Pro</strong> — облачная платформа с админ-панелью мониторинга БД в реальном времени.<br><br>
+                Версия: 3.0.5 Pro Admin<br>
                 Стек: CSS3 Glassmorphism, Supabase Realtime Engine.
               </p>
             </div>
@@ -1137,9 +1225,6 @@
     </div>
   </div>
 
-  <!-- ==========================================================================
-     ЛОГИКА И СКРИПТЫ (JS LOGIC & SUPABASE REALTIME ENGINE)
-     ========================================================================== -->
   <script>
     // --- ИНИЦИАЛИЗАЦИЯ SUPABASE ---
     const SUPABASE_URL = 'https://cgbfqznwdfremepyatef.supabase.co';
@@ -1153,6 +1238,7 @@
 
     let dialogs = [];
     let messages = {};
+    let sessionEventsCount = 0;
 
     // --- ПЕРЕКЛЮЧЕНИЕ ВИДИМОСТИ ПАРОЛЯ ---
     function togglePasswordVisibility(inputId, btn) {
@@ -1166,7 +1252,6 @@
       }
     }
 
-    // --- ЗВУКОВОЙ ДВИЖОК ВЕБ-АУДИО (БЕЗ ВНЕШНИХ ФАЙЛОВ) ---
     function playNotificationSound() {
       if (!document.getElementById('soundToggle').checked) return;
       try {
@@ -1183,11 +1268,10 @@
         osc.start();
         osc.stop(ctx.currentTime + 0.25);
       } catch (e) {
-        console.log('Audio Context Error:', e);
+        console.log('Audio Error:', e);
       }
     }
 
-    // --- TOAST УВЕДОМЛЕНИЯ ---
     function showToast(text) {
       if (!document.getElementById('toastToggle').checked) return;
       const container = document.getElementById('toastContainer');
@@ -1198,7 +1282,6 @@
       setTimeout(() => toast.remove(), 3000);
     }
 
-    // --- АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ ---
     function toggleAuthTab(tab) {
       document.getElementById('tabLoginBtn').classList.toggle('active', tab === 'login');
       document.getElementById('tabRegBtn').classList.toggle('active', tab === 'reg');
@@ -1209,7 +1292,7 @@
     let currentRegStep = 1;
     function nextRegStep(step) {
       if (step === 2 && !document.getElementById('regUsername').value.trim()) {
-        showToast('Пожалуйста, введите логин!');
+        showToast('Введите логин!');
         return;
       }
       if (step === 3) {
@@ -1248,7 +1331,7 @@
           const prev = document.getElementById('avatarPreview');
           prev.style.backgroundImage = `url('${uploadedAvatarUrl}')`;
           prev.classList.add('loaded');
-          showToast('Аватар успешно загружен!');
+          showToast('Аватар загружен!');
         };
         reader.readAsDataURL(file);
       }
@@ -1256,10 +1339,10 @@
 
     function handleLogin(e) {
       e.preventDefault();
-      const username = document.getElementById('loginUsername').value.trim() || 'Пользователь';
+      const username = document.getElementById('loginUsername').value.trim() || 'Администратор';
       currentUser = {
         name: username,
-        role: "👤 Пользователь",
+        role: "⚡ Администратор",
         avatar: uploadedAvatarUrl,
         bio: ""
       };
@@ -1285,8 +1368,14 @@
       document.getElementById('userRole').innerText = currentUser.role;
       document.getElementById('userAvatar').style.backgroundImage = `url('${currentUser.avatar}')`;
       
+      // Показываем кнопку админки если роль Администратор
+      if (currentUser.role.includes('Администратор')) {
+        document.getElementById('adminPanelBtn').style.display = 'flex';
+      }
+
       showToast(`С возвращением, ${currentUser.name}!`);
       fetchRealtimeDialogs();
+      setupGlobalRealtimeAdminMonitor();
     }
 
     // --- РАБОТА С СУПАБЕЙС ДИАЛОГАМИ ---
@@ -1311,6 +1400,9 @@
             renderDialogs();
             playNotificationSound();
             showToast(`Новый диалог: ${payload.new.name}`);
+          } else if (payload.eventType === 'DELETE') {
+            dialogs = dialogs.filter(d => d.id !== payload.old.id);
+            renderDialogs();
           }
         })
         .subscribe();
@@ -1333,7 +1425,7 @@
       });
 
       if (filtered.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 30px; font-size: 12px;">В этой категории нет чатов</div>';
+        list.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 30px; font-size: 12px;">Чатов не найдено</div>';
         return;
       }
 
@@ -1352,6 +1444,8 @@
         `;
         list.appendChild(item);
       });
+
+      updateAdminCounters();
     }
 
     function filterDialogs() {
@@ -1384,10 +1478,9 @@
       await fetchMessages(id);
     }
 
-    // --- РАБОТА С СООБЩЕНИЯМИ В СУПАБЕЙС ---
     async function fetchMessages(chatId) {
       const container = document.getElementById('messagesContainer');
-      container.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 35%; font-size: 13px;">Загрузка сообщений...</div>';
+      container.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 35%; font-size: 13px;">Загрузка...</div>';
 
       const { data, error } = await supabaseClient
         .from('messages')
@@ -1407,7 +1500,6 @@
         .channel(`public:messages:${chatId}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, payload => {
           if (!messages[chatId]) messages[chatId] = [];
-          
           if (!messages[chatId].some(m => m.id === payload.new.id)) {
             messages[chatId].push(payload.new);
             renderMessages();
@@ -1422,7 +1514,7 @@
       container.innerHTML = '';
       
       if (!messages[currentChatId] || messages[currentChatId].length === 0) {
-        container.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 35%; font-size: 13px;">В этом чате пока нет сообщений.<br>Напишите что-нибудь первым!</div>';
+        container.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 35%; font-size: 13px;">В этом чате пока нет сообщений</div>';
         return;
       }
 
@@ -1430,7 +1522,6 @@
         const isMy = m.author === currentUser.name;
         const div = document.createElement('div');
         div.className = `msg ${isMy ? 'my' : ''}`;
-        
         const dateStr = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         div.innerHTML = `
@@ -1467,17 +1558,14 @@
       messages[currentChatId].push(newMsg);
       renderMessages();
 
-      const { error } = await supabaseClient.from('messages').insert([newMsg]);
-      if (error) {
-        console.warn('Ошибка отправки в сеть, сообщение сохранено локально:', error);
-      }
+      await supabaseClient.from('messages').insert([newMsg]);
     }
 
     function clearCurrentChatMessages() {
       if (!currentChatId) return;
       messages[currentChatId] = [];
       renderMessages();
-      showToast('История сообщений очищена!');
+      showToast('Сообщения очищены!');
     }
 
     async function createNewDialog() {
@@ -1509,18 +1597,106 @@
       showToast(`Диалог "${title}" создан!`);
     }
 
-    // --- ЭМОДЗИ И ДОПОЛНИТЕЛЬНЫЙ ИНТЕРФЕЙС ---
-    function toggleEmojiPicker() {
-      document.getElementById('emojiPicker').classList.toggle('active');
+    // ==========================================================================
+    // ЛОГИКА АДМИН-ПАНЕЛИ (REALTIME МОНИТОРИНГ И МОДЕРАЦИЯ)
+    // ==========================================================================
+    function setupGlobalRealtimeAdminMonitor() {
+      // Глобальный слушатель всех изменений таблиц БД в реальном времени
+      supabaseClient
+        .channel('admin-global-monitor')
+        .on('postgres_changes', { event: '*', schema: 'public' }, payload => {
+          sessionEventsCount++;
+          document.getElementById('adminStatEvents').innerText = sessionEventsCount;
+          
+          const time = new Date().toLocaleTimeString();
+          const logBox = document.getElementById('adminRealtimeLog');
+          const entry = document.createElement('div');
+          
+          if (payload.eventType === 'INSERT') {
+            entry.className = 'log-entry event-insert';
+            entry.innerText = `[${time}] [INSERT] Таблица: ${payload.table} | ID: ${payload.new.id || 'N/A'}`;
+          } else if (payload.eventType === 'DELETE') {
+            entry.className = 'log-entry event-delete';
+            entry.innerText = `[${time}] [DELETE] Таблица: ${payload.table} | ID: ${payload.old.id || 'N/A'}`;
+          } else {
+            entry.className = 'log-entry';
+            entry.innerText = `[${time}] [${payload.eventType}] Таблица: ${payload.table}`;
+          }
+
+          logBox.appendChild(entry);
+          logBox.scrollTop = logBox.scrollHeight;
+
+          updateAdminCounters();
+        })
+        .subscribe();
     }
 
+    async function openAdminModal() {
+      document.getElementById('adminModal').classList.add('active');
+      await fetchAdminData();
+    }
+
+    async function fetchAdminData() {
+      updateAdminCounters();
+
+      // Загрузка списка диалогов в модалку админа для модерации
+      const listContainer = document.getElementById('adminDbTableList');
+      listContainer.innerHTML = '';
+
+      if (dialogs.length === 0) {
+        listContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 11px; text-align: center;">Чатов в БД нет</div>';
+        return;
+      }
+
+      dialogs.forEach(d => {
+        const row = document.createElement('div');
+        row.className = 'db-table-row';
+        row.innerHTML = `
+          <div>
+            <b>${d.name}</b> <span style="font-size: 10px; opacity:0.6;">(ID: ${d.id})</span>
+          </div>
+          <button class="btn outline" style="padding: 2px 8px; font-size: 10px; border-color: var(--danger); color: var(--danger);" onclick="deleteDialogFromDb(${d.id})">Удалить</button>
+        `;
+        listContainer.appendChild(row);
+      });
+    }
+
+    async function updateAdminCounters() {
+      document.getElementById('adminStatChats').innerText = dialogs.length;
+      
+      // Запрос кол-ва сообщений в БД
+      const { count, error } = await supabaseClient.from('messages').select('*', { count: 'exact', head: true });
+      if (!error && count !== null) {
+        document.getElementById('adminStatMessages').innerText = count;
+      }
+    }
+
+    async function deleteDialogFromDb(id) {
+      if (!confirm(`Удалить диалог #${id} из базы данных в реальном времени?`)) return;
+      
+      const { error } = await supabaseClient.from('dialogs').delete().eq('id', id);
+      if (error) {
+        showToast('Ошибка при удалении из БД');
+      } else {
+        showToast(`Диалог #${id} удален!`);
+        dialogs = dialogs.filter(d => d.id !== id);
+        renderDialogs();
+        fetchAdminData();
+      }
+    }
+
+    function clearAdminLogs() {
+      document.getElementById('adminRealtimeLog').innerHTML = '<div class="log-entry">[SYSTEM] Логи очищены.</div>';
+    }
+
+    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+    function toggleEmojiPicker() { document.getElementById('emojiPicker').classList.toggle('active'); }
     function addEmoji(emoji) {
       const input = document.getElementById('messageInput');
       input.value += emoji;
       input.focus();
     }
 
-    // --- НАСТРОЙКИ И МОДАЛЬНЫЕ ОКНА ---
     function openSettingsModal() { document.getElementById('settingsModal').classList.add('active'); }
     function openCreateModal() { document.getElementById('createModal').classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -1528,7 +1704,6 @@
     function switchSettingsTab(tabName, btn) {
       document.querySelectorAll('.settings-nav .nav-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
-      
       btn.classList.add('active');
       if (tabName === 'general') document.getElementById('setTabGeneral').classList.add('active');
       if (tabName === 'appearance') document.getElementById('setTabAppearance').classList.add('active');
@@ -1539,7 +1714,7 @@
     function changeAccentColor(color) {
       document.documentElement.style.setProperty('--accent', color);
       document.documentElement.style.setProperty('--accent-glow', color + '66');
-      showToast('Акцентный цвет изменён!');
+      showToast('Цвет изменён!');
     }
 
     function changeFontSize(val) {
@@ -1551,14 +1726,12 @@
       if (newBio) {
         currentUser.bio = newBio;
         document.getElementById('userRole').innerText = `${currentUser.role} • ${newBio}`;
-        showToast('Статус успешно обновлён!');
+        showToast('Профиль обновлен!');
       }
       closeModal('settingsModal');
     }
 
-    function logout() {
-      location.reload();
-    }
+    function logout() { location.reload(); }
 
     function showSidebar() {
       document.getElementById('sidebar').classList.remove('hidden');

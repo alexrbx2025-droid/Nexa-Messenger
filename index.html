@@ -229,6 +229,37 @@
       display: flex;
       animation: slideIn 0.3s ease-out;
     }
+
+    /* ПОЛЕ С КНОПКОЙ СКРЫТИЯ/ПОКАЗА ПАРОЛЯ */
+    .password-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+    }
+    .password-wrapper input {
+      width: 100%;
+      padding-right: 42px;
+    }
+    .toggle-pwd-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-fast);
+    }
+    .toggle-pwd-btn:hover {
+      color: var(--accent);
+      transform: scale(1.1);
+    }
+
     .btn-group {
       display: flex;
       gap: 10px;
@@ -852,7 +883,10 @@
       <!-- ФОРМА ВХОДА -->
       <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
         <input type="text" id="loginUsername" class="settings-input" placeholder="Логин / Имя пользователя" required>
-        <input type="password" id="loginPassword" class="settings-input" placeholder="Пароль" required>
+        <div class="password-wrapper">
+          <input type="password" id="loginPassword" class="settings-input" placeholder="Пароль" required>
+          <button type="button" class="toggle-pwd-btn" onclick="togglePasswordVisibility('loginPassword', this)">👁️</button>
+        </div>
         <button type="submit" class="btn" style="margin-top: 8px;">Войти в аккаунт</button>
       </form>
 
@@ -873,10 +907,16 @@
           <button type="button" class="btn" onclick="nextRegStep(2)">Далее →</button>
         </div>
 
-        <!-- ШАГ 2: Пароль -->
+        <!-- ШАГ 2: Пароль (с возможностью просмотра и скрытия) -->
         <div id="regStep2" class="reg-step">
-          <input type="password" id="regPassword" class="settings-input" placeholder="Придумайте пароль" required>
-          <input type="password" id="regPasswordConfirm" class="settings-input" placeholder="Повторите пароль" required>
+          <div class="password-wrapper">
+            <input type="password" id="regPassword" class="settings-input" placeholder="Придумайте пароль" required>
+            <button type="button" class="toggle-pwd-btn" onclick="togglePasswordVisibility('regPassword', this)">👁️</button>
+          </div>
+          <div class="password-wrapper">
+            <input type="password" id="regPasswordConfirm" class="settings-input" placeholder="Повторите пароль" required>
+            <button type="button" class="toggle-pwd-btn" onclick="togglePasswordVisibility('regPasswordConfirm', this)">👁️</button>
+          </div>
           <div class="btn-group">
             <button type="button" class="btn outline" onclick="prevRegStep(1)">← Назад</button>
             <button type="button" class="btn" onclick="nextRegStep(3)">Далее →</button>
@@ -1088,7 +1128,7 @@
               <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
                 <strong>Nexa Messenger</strong> — защищённая облачная платформа для мгновенного обмена сообщениями.<br><br>
                 Версия: 3.0.4 Pro<br>
-                Стек: HTML5, CSS3 Glassmorphism, Supabase Realtime Engine.
+                Стек: CSS3 Glassmorphism, Supabase Realtime Engine.
               </p>
             </div>
           </div>
@@ -1114,6 +1154,18 @@
     let dialogs = [];
     let messages = {};
 
+    // --- ПЕРЕКЛЮЧЕНИЕ ВИДИМОСТИ ПАРОЛЯ ---
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerText = '🙈';
+      } else {
+        input.type = 'password';
+        btn.innerText = '👁️';
+      }
+    }
+
     // --- ЗВУКОВОЙ ДВИЖОК ВЕБ-АУДИО (БЕЗ ВНЕШНИХ ФАЙЛОВ) ---
     function playNotificationSound() {
       if (!document.getElementById('soundToggle').checked) return;
@@ -1122,8 +1174,8 @@
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
         gain.gain.setValueAtTime(0.1, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
         osc.connect(gain);
@@ -1243,7 +1295,6 @@
       if (!error && data) {
         dialogs = data;
       } else {
-        // Дефолтные чаты для первой загрузки
         dialogs = [
           { id: 1, name: '💬 Общий Чат', type: 'group', participants_count: 12, avatar: '' },
           { id: 2, name: '📢 Новости Nexa', type: 'channel', participants_count: 84, avatar: '' }
@@ -1252,7 +1303,6 @@
       
       renderDialogs();
 
-      // Подписка на добавление чатов в реальном времени
       supabaseClient
         .channel('public:dialogs')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'dialogs' }, payload => {
@@ -1353,13 +1403,11 @@
       
       renderMessages();
 
-      // Слушатель новых сообщений конкретного чата
       supabaseClient
         .channel(`public:messages:${chatId}`)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, payload => {
           if (!messages[chatId]) messages[chatId] = [];
           
-          // Избегаем дублирования при локальной отправке
           if (!messages[chatId].some(m => m.id === payload.new.id)) {
             messages[chatId].push(payload.new);
             renderMessages();
@@ -1415,12 +1463,10 @@
         created_at: new Date().toISOString()
       };
 
-      // Оптимистичное отображение
       if (!messages[currentChatId]) messages[currentChatId] = [];
       messages[currentChatId].push(newMsg);
       renderMessages();
 
-      // Отправка в Supabase
       const { error } = await supabaseClient.from('messages').insert([newMsg]);
       if (error) {
         console.warn('Ошибка отправки в сеть, сообщение сохранено локально:', error);

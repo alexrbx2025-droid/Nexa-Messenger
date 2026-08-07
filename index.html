@@ -1,1033 +1,1524 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
- <meta name="mobile-web-app-capable" content="yes">
- <meta name="apple-mobile-web-app-capable" content="yes">
- <title>Nexa Messenger</title>
- <style>
- :root {
-   --bg: #070b14;
-   --accent: #00d2ff;
-   --accent-glow: rgba(0, 210, 255, 0.35);
-   --accent-hover: #00b8e6;
-   --glass-bg: rgba(255, 255, 255, 0.06);
-   --glass-card: rgba(18, 24, 38, 0.75);
-   --glass-border: rgba(255, 255, 255, 0.12);
-   --text-main: #ffffff;
-   --text-muted: #94a3b8;
-   --app-font-size: 14.5px;
-   --border-radius: 20px;
- }
- 
- * { 
-   box-sizing: border-box; 
-   margin: 0; 
-   padding: 0; 
-   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-   -webkit-tap-highlight-color: transparent;
-   user-select: none;
- }
- 
- input, textarea { 
-   user-select: text; 
- }
- 
- body { 
-   background: var(--bg); 
-   color: var(--text-main); 
-   height: 100vh; 
-   height: 100dvh; 
-   overflow: hidden; 
-   display: flex; 
-   justify-content: center; 
-   align-items: center; 
-   position: relative; 
-   font-size: var(--app-font-size);
- }
- 
- /* --- LIQUID BACKGROUND --- */
- .background-blobs { 
-   position: fixed; 
-   top: 0; left: 0; width: 100vw; height: 100vh; 
-   z-index: 0; 
-   overflow: hidden; 
-   pointer-events: none; 
- }
- .blob { 
-   position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5; 
-   animation: float 18s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); 
- }
- .blob-1 { width: 380px; height: 380px; background: #00d2ff; top: -80px; left: -80px; }
- .blob-2 { width: 420px; height: 420px; background: #7928ca; bottom: -120px; right: -80px; animation-delay: -5s; }
- .blob-3 { width: 300px; height: 300px; background: #ff0080; top: 40%; left: 40%; animation-delay: -10s; opacity: 0.3; }
- 
- @keyframes float { 
-   0% { transform: translate(0, 0) scale(1) rotate(0deg); } 
-   50% { transform: translate(50px, 60px) scale(1.1) rotate(120deg); } 
-   100% { transform: translate(-40px, 30px) scale(0.95) rotate(240deg); } 
- }
- 
- /* --- LIQUID GLASS --- */
- .glass { 
-   background: var(--glass-card); 
-   backdrop-filter: blur(25px) saturate(180%); 
-   -webkit-backdrop-filter: blur(25px) saturate(180%); 
-   border: 1px solid var(--glass-border); 
-   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15); 
-   border-radius: var(--border-radius); 
- }
- 
- /* ЭКРАНЫ */
- .screen { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; z-index: 10; animation: fadeIn 0.3s ease-out; position: relative; }
- .screen.active { display: flex; }
- 
- .auth-box { padding: 30px 28px; text-align: center; max-width: 400px; width: 90%; animation: scaleUp 0.3s ease-out; }
- .auth-tabs { display: flex; gap: 10px; margin-bottom: 20px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 14px; border: 1px solid var(--glass-border); }
- .auth-tab { flex: 1; padding: 10px; border: none; background: transparent; color: var(--text-muted); font-weight: 600; border-radius: 10px; cursor: pointer; transition: 0.2s; }
- .auth-tab.active { background: rgba(0, 210, 255, 0.2); color: var(--accent); }
- 
- .auth-form { display: none; flex-direction: column; gap: 12px; }
- .auth-form.active { display: flex; }
- 
- /* --- ПОШАГОВАЯ РЕГИСТРАЦИЯ И АВАТАРКА --- */
- .progress-container { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
- .progress-bar { height: 100%; width: 25%; background: var(--accent); border-radius: 4px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
- .reg-step { display: none; flex-direction: column; gap: 12px; animation: fadeIn 0.3s ease; }
- .reg-step.active { display: flex; }
- .btn-group { display: flex; gap: 10px; margin-top: 5px; }
- .btn-group .btn { flex: 1; }
- 
- .avatar-upload-container { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-bottom: 10px; }
- .avatar-preview { 
-   width: 90px; height: 90px; border-radius: 50%; 
-   background-color: rgba(255, 255, 255, 0.05); 
-   background-image: url('https://cdn-icons-png.flaticon.com/512/847/847969.png'); 
-   background-size: cover; background-position: center; 
-   border: 2px dashed rgba(255, 255, 255, 0.3); transition: all 0.3s ease; 
- }
- .avatar-preview.loaded { border-color: var(--accent); border-style: solid; }
- .avatar { width: 44px; height: 44px; border-radius: 50%; background-size: cover; background-position: center; border: 2px solid rgba(255,255,255,0.2); flex-shrink: 0; }
- 
- /* ГЛАВНЫЙ ИНТЕРФЕЙС */
- #mainApp { width: 96vw; height: 94dvh; display: none; flex-direction: row; z-index: 10; overflow: hidden; animation: fadeIn 0.3s ease-out; }
- #mainApp.active { display: flex; }
- 
- /* САЙДБАР */
- .sidebar { width: 320px; border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; background: rgba(10, 15, 28, 0.5); }
- .sidebar-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); }
- 
- .search-box { padding: 10px 14px; border-bottom: 1px solid var(--glass-border); }
- .search-input { width: 100%; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); padding: 10px 14px; border-radius: 12px; color: #fff; outline: none; font-size: 13px; }
- .search-input:focus { border-color: var(--accent); }
- 
- .chat-list { flex: 1; overflow-y: auto; padding: 10px; -webkit-overflow-scrolling: touch; }
- .chat-item { padding: 12px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; border-radius: 16px; margin-bottom: 4px; transition: all 0.2s ease; }
- .chat-item:hover, .chat-item.active { background: rgba(255, 255, 255, 0.08); }
- .chat-item-type { font-size: 10px; padding: 2px 6px; border-radius: 6px; background: rgba(255,255,255,0.1); margin-left: auto; color: var(--text-muted); }
- 
- /* ОКНО ЧАТА */
- .chat-window { flex: 1; display: flex; flex-direction: column; background: rgba(5, 8, 16, 0.3); }
- .chat-header { padding: 14px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--glass-border); background: rgba(18, 24, 38, 0.4); }
- .messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; }
- 
- /* СООБЩЕНИЯ */
- .msg { max-width: 75%; padding: 10px 16px; border-radius: 18px 18px 18px 4px; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); align-self: flex-start; word-break: break-word; font-size: var(--app-font-size); line-height: 1.4; animation: msgIn 0.25s ease-out; }
- .msg.my { align-self: flex-end; border-radius: 18px 18px 4px 18px; background: linear-gradient(135deg, #00d2ff 0%, #0080ff 100%); color: #000; font-weight: 500; border: none; box-shadow: 0 4px 15px var(--accent-glow); }
- .msg-author { font-size: 11px; font-weight: bold; margin-bottom: 3px; color: var(--accent); display: flex; align-items: center; gap: 6px; }
- .msg.my .msg-author { color: rgba(0,0,0,0.7); }
- .role-badge { font-size: 9px; padding: 1px 5px; border-radius: 4px; background: rgba(255, 255, 255, 0.2); color: #fff; font-weight: normal; }
- .msg.my .role-badge { background: rgba(0, 0, 0, 0.15); color: #000; }
- .msg-badge { font-size: 12px; margin-left: 4px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#070b14">
+  <title>Nexa Messenger v3.0 Pro</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="manifest.json">
+  
+  <style>
+    /* ==========================================================================
+       1. ПЕРЕМЕННЫЕ И ОСНОВНЫЕ СТИЛИ (THEMING & ROOT)
+       ========================================================================== */
+    :root {
+      --bg-primary: #070b14;
+      --bg-secondary: #0d1322;
+      --accent: #00d2ff;
+      --accent-glow: rgba(0, 210, 255, 0.4);
+      --accent-hover: #00b8e6;
+      --accent-gradient: linear-gradient(135deg, #00d2ff 0%, #0072ff 100%);
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-card: rgba(18, 24, 38, 0.82);
+      --glass-header: rgba(15, 21, 35, 0.88);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-border-hover: rgba(0, 210, 255, 0.3);
+      --text-main: #ffffff;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --danger: #ff4757;
+      --success: #2ed573;
+      --warning: #ffa500;
+      --app-font-size: 14.5px;
+      --border-radius-lg: 20px;
+      --border-radius-md: 14px;
+      --border-radius-sm: 8px;
+      --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-smooth: 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
 
- /* ЗНАЧКИ В НАСТРОЙКАХ */
- .badges-container { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
- .badge-item { padding: 6px 12px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); cursor: pointer; font-size: 13px; transition: 0.2s; }
- .badge-item:hover, .badge-item.active { background: rgba(0, 210, 255, 0.2); border-color: var(--accent); }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
 
- /* АДМИН ПАНЕЛЬ */
- .admin-stat-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border); text-align: center; flex: 1; }
- .admin-stat-num { font-size: 24px; color: var(--accent); font-weight: bold; margin-bottom: 5px; }
- .admin-user-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--glass-border); }
+    input, textarea, select {
+      user-select: text;
+    }
 
- /* ГОЛОСОВЫЕ СООБЩЕНИЯ */
- .voice-msg { display: flex; align-items: center; gap: 10px; min-width: 180px; }
- .voice-play-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--accent); color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
- .voice-wave { flex: 1; height: 16px; display: flex; align-items: center; gap: 2px; }
- .voice-bar { flex: 1; background: rgba(255,255,255,0.4); height: 100%; border-radius: 2px; }
- .msg.my .voice-bar { background: rgba(0,0,0,0.3); }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-main);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      font-size: var(--app-font-size);
+    }
 
- /* ПОЛЕ ВВОДА В ЧАТЕ */
- .input-area { padding: 14px 20px; display: flex; gap: 8px; align-items: center; background: rgba(18, 24, 38, 0.5); border-top: 1px solid var(--glass-border); position: relative; }
- .input-area input { flex: 1; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--glass-border); padding: 12px 18px; border-radius: 25px; color: #fff; outline: none; font-size: 14px; }
- .input-area input:focus { border-color: var(--accent); }
+    /* Кастомный скроллбар */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
 
- /* ПАНЕЛЬ ЭМОДЗИ */
- .emoji-picker { display: none; position: absolute; bottom: 70px; right: 60px; background: var(--glass-card); border: 1px solid var(--glass-border); backdrop-filter: blur(20px); border-radius: 16px; padding: 10px; grid-template-columns: repeat(6, 1fr); gap: 8px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
- .emoji-picker.active { display: grid; }
- .emoji-item { font-size: 20px; cursor: pointer; text-align: center; padding: 4px; border-radius: 8px; transition: 0.2s; }
- .emoji-item:hover { background: rgba(255,255,255,0.1); }
- 
- /* КНОПКИ */
- .btn { background: linear-gradient(135deg, #00d2ff 0%, #0080ff 100%); color: #000; border: none; padding: 12px 20px; border-radius: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 15px var(--accent-glow); }
- .btn:active { transform: scale(0.97); }
- .btn.outline { background: transparent; border: 1px solid var(--text-muted); color: var(--text-main); box-shadow: none; }
- .btn.outline:hover { background: rgba(255,255,255,0.05); }
- .btn-danger { background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%); color: #fff; box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); }
- .btn-dark-danger { background: linear-gradient(135deg, #b31217 0%, #e52d27 100%); color: #fff; box-shadow: 0 4px 15px rgba(179, 18, 23, 0.4); }
- .icon-btn { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: #fff; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; flex-shrink: 0; }
- .icon-btn:active { transform: scale(0.9); }
- .icon-btn.recording { background: #ff4757; color: #fff; animation: pulse 1s infinite; }
- 
- /* МОДАЛЬНЫЕ ОКНА */
- .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); justify-content: center; align-items: center; z-index: 999; }
- .modal-overlay.active { display: flex; animation: fadeIn 0.25s ease-out; }
- 
- #customDialogModal { z-index: 10000; }
- 
- /* НАСТРОЙКИ (2 КОЛОНКИ) */
- .settings-modal { width: 92%; max-width: 760px; height: 75vh; max-height: 600px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
- .settings-topbar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; }
- .settings-layout { display: flex; flex: 1; gap: 16px; overflow: hidden; }
- 
- .settings-nav { width: 190px; display: flex; flex-direction: column; gap: 6px; border-right: 1px solid var(--glass-border); padding-right: 12px; overflow-y: auto; }
- .nav-btn { background: transparent; color: var(--text-main); border: none; padding: 10px 14px; border-radius: 12px; text-align: left; font-size: 13.5px; font-weight: 500; cursor: pointer; transition: 0.2s; }
- .nav-btn:hover, .nav-btn.active { background: rgba(0, 210, 255, 0.15); color: var(--accent); }
- 
- .settings-content { flex: 1; overflow-y: auto; padding-right: 6px; -webkit-overflow-scrolling: touch; }
- .settings-panel { display: none; flex-direction: column; gap: 14px; }
- .settings-panel.active { display: flex; }
- 
- .setting-group { background: rgba(0, 0, 0, 0.25); padding: 14px; border-radius: 16px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 12px; }
- .group-title { color: var(--accent); font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
- .setting-item { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; }
- 
- .settings-input { width: 100%; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--glass-border); padding: 10px 14px; border-radius: 10px; color: #fff; outline: none; font-size: 13.5px; }
- .settings-input:focus { border-color: var(--accent); }
- 
- /* АДАПТИВ ДЛЯ МОБИЛОК / APK */
- @media (max-width: 768px) { 
-   #mainApp { width: 100vw; height: 100dvh; border-radius: 0; border: none; } 
-   .sidebar { width: 100%; } 
-   .sidebar.hidden { display: none; } 
-   .chat-window { display: none; } 
-   .chat-window.active { display: flex; } 
-   
-   .settings-modal { width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; padding: 16px; } 
-   .settings-layout { flex-direction: column; } 
-   .settings-nav { width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid var(--glass-border); padding-right: 0; padding-bottom: 10px; overflow-x: auto; } 
-   .nav-btn { white-space: nowrap; } 
- }
- </style>
-    <link rel="manifest" href="manifest.json">
+    /* ==========================================================================
+       2. ЖИВОЙ ФОН И АНИМАЦИИ (LIQUID BACKGROUND)
+       ========================================================================== */
+    .background-blobs {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.45;
+      animation: float 22s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .blob-1 {
+      width: 450px;
+      height: 450px;
+      background: var(--accent);
+      top: -100px;
+      left: -100px;
+    }
+    .blob-2 {
+      width: 500px;
+      height: 500px;
+      background: #7928ca;
+      bottom: -150px;
+      right: -100px;
+      animation-delay: -6s;
+    }
+    .blob-3 {
+      width: 350px;
+      height: 350px;
+      background: #ff0080;
+      top: 35%;
+      left: 35%;
+      animation-delay: -12s;
+      opacity: 0.25;
+    }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      50% { transform: translate(70px, 80px) scale(1.15) rotate(140deg); }
+      100% { transform: translate(-50px, 40px) scale(0.9) rotate(280deg); }
+    }
+
+    .glass {
+      background: var(--glass-card);
+      backdrop-filter: blur(30px) saturate(190%);
+      -webkit-backdrop-filter: blur(30px) saturate(190%);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    /* ==========================================================================
+       3. ЭКРАНЫ И АВТОРИЗАЦИЯ / ПОШАГОВАЯ РЕГИСТРАЦИЯ
+       ========================================================================== */
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      position: relative;
+    }
+    .screen.active {
+      display: flex;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .auth-box {
+      padding: 35px 30px;
+      text-align: center;
+      max-width: 440px;
+      width: 92%;
+      border-radius: var(--border-radius-lg);
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 22px;
+      background: rgba(0,0,0,0.3);
+      padding: 6px;
+      border-radius: var(--border-radius-md);
+      border: 1px solid var(--glass-border);
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .auth-tab.active {
+      background: var(--accent-gradient);
+      color: #000;
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+
+    .auth-form {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .auth-form.active {
+      display: flex;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 25%;
+      background: var(--accent-gradient);
+      border-radius: 4px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .reg-step {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .reg-step.active {
+      display: flex;
+      animation: slideIn 0.3s ease-out;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .btn-group .btn {
+      flex: 1;
+    }
+
+    .avatar-upload-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 5px;
+    }
+    .avatar-preview {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.05);
+      background-image: url('https://cdn-icons-png.flaticon.com/512/847/847969.png');
+      background-size: cover;
+      background-position: center;
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      transition: var(--transition-fast);
+      cursor: pointer;
+      position: relative;
+    }
+    .avatar-preview:hover {
+      border-color: var(--accent);
+      transform: scale(1.03);
+    }
+    .avatar-preview.loaded {
+      border-color: var(--accent);
+      border-style: solid;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    /* ==========================================================================
+       4. ГЛАВНЫЙ ИНТЕРФЕЙС (MAIN MESSENGER UI)
+       ========================================================================== */
+    #mainApp {
+      width: 100%;
+      height: 100vh;
+      display: none;
+      flex-direction: row;
+      z-index: 10;
+      overflow: hidden;
+      border-radius: 0;
+    }
+    #mainApp.active {
+      display: flex;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    /* САЙДБАР */
+    .sidebar {
+      width: 340px;
+      border-right: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-secondary);
+      transition: transform 0.3s ease;
+      z-index: 20;
+    }
+    .sidebar-header {
+      padding: 18px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+      background: var(--glass-header);
+    }
+
+    .chat-categories {
+      display: flex;
+      gap: 6px;
+      padding: 10px 14px 4px 14px;
+      overflow-x: auto;
+    }
+    .cat-chip {
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: var(--transition-fast);
+    }
+    .cat-chip.active, .cat-chip:hover {
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .search-box {
+      padding: 10px 14px;
+    }
+    .search-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--glass-border);
+      padding: 10px 14px 10px 36px;
+      border-radius: 12px;
+      color: #fff;
+      outline: none;
+      font-size: 13px;
+      transition: var(--transition-fast);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 10px center;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .chat-item {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      border-radius: 16px;
+      margin-bottom: 4px;
+      transition: var(--transition-fast);
+      position: relative;
+    }
+    .chat-item:hover, .chat-item.active {
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateX(3px);
+    }
+    .chat-item.active {
+      border-left: 3px solid var(--accent);
+    }
+    .chat-item-type {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+    .unread-badge {
+      background: var(--accent);
+      color: #000;
+      font-weight: bold;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 6px;
+    }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0,0,0,0.3);
+    }
+
+    /* ОКНО ЧАТА */
+    .chat-window {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(5, 8, 16, 0.5);
+      position: relative;
+    }
+    .chat-header {
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--glass-border);
+      background: var(--glass-header);
+      backdrop-filter: blur(15px);
+    }
+    .chat-header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .messages-container {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* СООБЩЕНИЯ */
+    .msg {
+      max-width: 72%;
+      padding: 12px 18px;
+      border-radius: 20px 20px 20px 4px;
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      align-self: flex-start;
+      word-break: break-word;
+      font-size: var(--app-font-size);
+      line-height: 1.45;
+      animation: msgIn 0.3s var(--transition-smooth) forwards;
+      opacity: 0;
+      transform: translateY(15px) scale(0.96);
+      position: relative;
+    }
+    .msg.my {
+      align-self: flex-end;
+      border-radius: 20px 20px 4px 20px;
+      background: var(--accent-gradient);
+      color: #000;
+      font-weight: 500;
+      border: none;
+      box-shadow: 0 4px 18px var(--accent-glow);
+    }
+    .msg-author {
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .msg.my .msg-author {
+      color: rgba(0, 0, 0, 0.75);
+    }
+    .role-badge {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-weight: normal;
+    }
+    .msg.my .role-badge {
+      background: rgba(0, 0, 0, 0.15);
+      color: #000;
+    }
+    .msg-time {
+      font-size: 9.5px;
+      margin-top: 4px;
+      text-align: right;
+      opacity: 0.6;
+    }
+
+    /* ПОЛЕ ВВОДА В ЧАТЕ */
+    .input-area {
+      padding: 14px 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: var(--glass-header);
+      border-top: 1px solid var(--glass-border);
+      position: relative;
+      backdrop-filter: blur(15px);
+    }
+    .input-area input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--glass-border);
+      padding: 12px 20px;
+      border-radius: 25px;
+      color: #fff;
+      outline: none;
+      font-size: 14px;
+      transition: var(--transition-fast);
+    }
+    .input-area input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    /* КНОПКИ */
+    .btn {
+      background: var(--accent-gradient);
+      color: #000;
+      border: none;
+      padding: 12px 22px;
+      border-radius: var(--border-radius-md);
+      font-weight: 700;
+      font-size: 13.5px;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      box-shadow: 0 4px 15px var(--accent-glow);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+    .btn.outline {
+      background: transparent;
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      box-shadow: none;
+    }
+    .btn.outline:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: #fff;
+    }
+    
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-fast);
+      flex-shrink: 0;
+    }
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--accent);
+      transform: scale(1.05);
+    }
+    .icon-btn:active {
+      transform: scale(0.9);
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      border: 2px solid rgba(255,255,255,0.15);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    /* ==========================================================================
+       5. МОДАЛЬНЫЕ ОКНА И ДВУХКОЛОНОЧНЫЕ НАСТРОЙКИ
+       ========================================================================== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    .modal-overlay.active {
+      display: flex;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .settings-modal {
+      width: 92%;
+      max-width: 800px;
+      height: 78vh;
+      max-height: 640px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      border-radius: var(--border-radius-lg);
+    }
+    .settings-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 14px;
+    }
+    .settings-layout {
+      display: flex;
+      flex: 1;
+      gap: 20px;
+      overflow: hidden;
+    }
+
+    .settings-nav {
+      width: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-right: 1px solid var(--glass-border);
+      padding-right: 14px;
+      overflow-y: auto;
+    }
+    .nav-btn {
+      background: transparent;
+      color: var(--text-main);
+      border: none;
+      padding: 12px 16px;
+      border-radius: var(--border-radius-md);
+      text-align: left;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-btn:hover, .nav-btn.active {
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--accent);
+      padding-left: 20px;
+    }
+
+    .settings-content {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .settings-panel {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      animation: slideIn 0.25s ease-out;
+    }
+    .settings-panel.active {
+      display: flex;
+    }
+
+    .setting-group {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 16px;
+      border-radius: var(--border-radius-md);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .group-title {
+      color: var(--accent);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13.5px;
+    }
+
+    .settings-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--glass-border);
+      padding: 11px 16px;
+      border-radius: var(--border-radius-sm);
+      color: #fff;
+      outline: none;
+      font-size: 13.5px;
+      transition: var(--transition-fast);
+    }
+    .settings-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* ЭМОДЗИ ПАНЕЛЬ */
+    .emoji-picker {
+      position: absolute;
+      bottom: 75px;
+      left: 20px;
+      background: var(--glass-card);
+      backdrop-filter: blur(25px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--border-radius-md);
+      padding: 12px;
+      display: none;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 100;
+    }
+    .emoji-picker.active {
+      display: grid;
+      animation: slideIn 0.2s ease;
+    }
+    .emoji-item {
+      font-size: 20px;
+      cursor: pointer;
+      text-align: center;
+      padding: 4px;
+      border-radius: 6px;
+      transition: var(--transition-fast);
+    }
+    .emoji-item:hover {
+      background: rgba(255,255,255,0.15);
+      transform: scale(1.2);
+    }
+
+    /* TOAST УВЕДОМЛЕНИЯ */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .toast {
+      background: var(--glass-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-left: 4px solid var(--accent);
+      padding: 12px 20px;
+      border-radius: var(--border-radius-sm);
+      color: #fff;
+      font-size: 13px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      animation: slideInRight 0.3s ease, fadeOut 0.3s 2.7s ease forwards;
+    }
+
+    /* ==========================================================================
+       6. АНИМАЦИИ И АДАПТИВ (KEYFRAMES & MEDIA QUERIES)
+       ========================================================================== */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fadeOut { to { opacity: 0; transform: translateY(-10px); } }
+    @keyframes scaleUp { from { opacity: 0; transform: scale(0.93); } to { opacity: 1; transform: scale(1); } }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    @keyframes msgIn { to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+      }
+      .sidebar.hidden {
+        display: none;
+      }
+      .chat-window {
+        display: none;
+      }
+      .chat-window.active {
+        display: flex;
+        animation: slideInRight 0.3s ease;
+      }
+      .settings-modal {
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        padding: 16px;
+      }
+      .settings-layout {
+        flex-direction: column;
+      }
+      .settings-nav {
+        width: 100%;
+        flex-direction: row;
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+        padding-right: 0;
+        padding-bottom: 10px;
+        overflow-x: auto;
+      }
+      .nav-btn {
+        white-space: nowrap;
+        padding-left: 14px !important;
+      }
+    }
+  </style>
 </head>
 <body>
 
- <div class="background-blobs" id="blobsContainer">
-   <div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
- </div>
+  <!-- TOAST УВЕДОМЛЕНИЯ -->
+  <div id="toastContainer"></div>
 
- <!-- ЭКРАН АВТОРИЗАЦИИ / РЕГИСТРАЦИИ -->
- <div id="authScreen" class="screen active">
-   <div class="auth-box glass">
-     <h2 style="color: var(--accent); margin-bottom: 6px;">Nexa</h2>
-     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;" data-i18n="appSubtitle">Добро пожаловать в мессенджер нового поколения</p>
-     
-     <div class="auth-tabs">
-       <button class="auth-tab active" onclick="toggleAuthTab('login')" data-i18n="loginTab">Вход</button>
-       <button class="auth-tab" onclick="toggleAuthTab('register')" data-i18n="regTab">Регистрация</button>
-     </div>
+  <!-- ЖИВОЙ ФОН -->
+  <div class="background-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
 
-     <!-- ФОРМА ВХОДА -->
-     <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
-       <input type="text" id="loginUsername" class="settings-input" placeholder="Никнейм или Email" required>
-       <input type="password" id="loginPassword" class="settings-input" placeholder="Пароль" required>
-       <button type="submit" class="btn" style="margin-top: 10px;" data-i18n="loginBtn">Войти</button>
-     </form>
+  <!-- ==========================================================================
+     ЭКРАН АВТОРИЗАЦИИ И ПОШАГОВОЙ РЕГИСТРАЦИИ
+     ========================================================================== -->
+  <div id="authScreen" class="screen active">
+    <div class="auth-box glass">
+      <h2 style="color: var(--accent); margin-bottom: 4px; font-weight: 800; letter-spacing: 1px;">Nexa Messenger</h2>
+      <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 22px;">Версия 3.0 • Облачная синхронизация</p>
+      
+      <div class="auth-tabs">
+        <button id="tabLoginBtn" class="auth-tab active" onclick="toggleAuthTab('login')">Вход</button>
+        <button id="tabRegBtn" class="auth-tab" onclick="toggleAuthTab('reg')">Регистрация</button>
+      </div>
 
-     <!-- ПОШАГОВАЯ ФОРМА РЕГИСТРАЦИИ -->
-     <form id="regForm" class="auth-form" onsubmit="return false;">
-       <div class="progress-container">
-         <div class="progress-bar" id="regProgress"></div>
-       </div>
+      <!-- ФОРМА ВХОДА -->
+      <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
+        <input type="text" id="loginUsername" class="settings-input" placeholder="Логин / Имя пользователя" required>
+        <input type="password" id="loginPassword" class="settings-input" placeholder="Пароль" required>
+        <button type="submit" class="btn" style="margin-top: 8px;">Войти в аккаунт</button>
+      </form>
 
-       <!-- Шаг 1: Email -->
-       <div id="step-1" class="reg-step active">
-         <h3 style="font-size: 15px; margin-bottom: 5px; color: var(--accent);">Шаг 1: Email</h3>
-         <input type="email" id="regEmail" class="settings-input" placeholder="example@mail.com" required>
-         <button type="button" class="btn" onclick="nextRegStep(1)">Далее</button>
-       </div>
+      <!-- ПОШАГОВАЯ ФОРМА РЕГИСТРАЦИИ -->
+      <form id="regForm" class="auth-form" onsubmit="handleRegister(event)">
+        <div class="progress-container">
+          <div id="regProgressBar" class="progress-bar"></div>
+        </div>
 
-       <!-- Шаг 2: Пароль -->
-       <div id="step-2" class="reg-step">
-         <h3 style="font-size: 15px; margin-bottom: 5px; color: var(--accent);">Шаг 2: Пароль</h3>
-         <input type="password" id="regPassword" class="settings-input" placeholder="Минимум 4 символа" required>
-         <div class="btn-group">
-           <button type="button" class="btn outline" onclick="prevRegStep(2)">Назад</button>
-           <button type="button" class="btn" onclick="nextRegStep(2)">Далее</button>
-         </div>
-       </div>
+        <!-- ШАГ 1: Аватарка и Логин -->
+        <div id="regStep1" class="reg-step active">
+          <div class="avatar-upload-container">
+            <div id="avatarPreview" class="avatar-preview" onclick="document.getElementById('avatarFileInput').click()"></div>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="handleAvatarUpload(event)">
+            <span style="font-size: 11px; color: var(--text-muted);">Кликните, чтобы загрузить аватар</span>
+          </div>
+          <input type="text" id="regUsername" class="settings-input" placeholder="Придумайте логин" required>
+          <button type="button" class="btn" onclick="nextRegStep(2)">Далее →</button>
+        </div>
 
-       <!-- Шаг 3: Никнейм -->
-       <div id="step-3" class="reg-step">
-         <h3 style="font-size: 15px; margin-bottom: 5px; color: var(--accent);">Шаг 3: Никнейм</h3>
-         <input type="text" id="regUsername" class="settings-input" placeholder="Имя пользователя" required>
-         <div class="btn-group">
-           <button type="button" class="btn outline" onclick="prevRegStep(3)">Назад</button>
-           <button type="button" class="btn" onclick="nextRegStep(3)">Далее</button>
-         </div>
-       </div>
+        <!-- ШАГ 2: Пароль -->
+        <div id="regStep2" class="reg-step">
+          <input type="password" id="regPassword" class="settings-input" placeholder="Придумайте пароль" required>
+          <input type="password" id="regPasswordConfirm" class="settings-input" placeholder="Повторите пароль" required>
+          <div class="btn-group">
+            <button type="button" class="btn outline" onclick="prevRegStep(1)">← Назад</button>
+            <button type="button" class="btn" onclick="nextRegStep(3)">Далее →</button>
+          </div>
+        </div>
 
-       <!-- Шаг 4: Аватарка -->
-       <div id="step-4" class="reg-step">
-         <h3 style="font-size: 15px; margin-bottom: 5px; color: var(--accent);">Шаг 4: Аватарка</h3>
-         <div class="avatar-upload-container">
-           <div id="regAvatarPreview" class="avatar-preview"></div>
-           <label for="regAvatarFile" class="btn outline" style="border: 1px solid var(--accent); cursor: pointer; padding: 8px 14px; font-size: 13px;">
-             📁 Выбрать файл
-           </label>
-           <input type="file" id="regAvatarFile" accept="image/*" style="display: none;" onchange="handleAvatarUpload(event)">
-         </div>
-         <div class="btn-group">
-           <button type="button" class="btn outline" onclick="prevRegStep(4)">Назад</button>
-           <button type="button" class="btn" onclick="submitRegistration()">Создать аккаунт</button>
-         </div>
-       </div>
-     </form>
+        <!-- ШАГ 3: Роль и О себе -->
+        <div id="regStep3" class="reg-step">
+          <select id="regRole" class="settings-input">
+            <option value="👤 Пользователь">👤 Пользователь</option>
+            <option value="💻 Разработчик">💻 Разработчик</option>
+            <option value="🎨 Дизайнер">🎨 Дизайнер</option>
+            <option value="🧪 Тестировщик">🧪 Тестировщик</option>
+            <option value="⚡ Администратор">⚡ Администратор</option>
+          </select>
+          <input type="text" id="regBio" class="settings-input" placeholder="Статус / О себе (необязательно)">
+          <div class="btn-group">
+            <button type="button" class="btn outline" onclick="prevRegStep(2)">← Назад</button>
+            <button type="button" class="btn" onclick="nextRegStep(4)">Далее →</button>
+          </div>
+        </div>
 
-     <div style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
-       <button class="btn" style="background: rgba(255,255,255,0.1); color: #fff; width: 100%; box-shadow: none;" onclick="demoLogin()" data-i18n="demoBtn">Быстрый демо-вход</button>
-     </div>
-   </div>
- </div>
+        <!-- ШАГ 4: Подтверждение -->
+        <div id="regStep4" class="reg-step">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Проверьте введённые данные:</p>
+          <div id="regSummary" style="text-align: left; font-size: 12px; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 10px; border: 1px solid var(--glass-border); margin-bottom: 8px; line-height: 1.6;"></div>
+          <div class="btn-group">
+            <button type="button" class="btn outline" onclick="prevRegStep(3)">← Назад</button>
+            <button type="submit" class="btn">Создать профиль</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
- <!-- ГЛАВНЫЙ ИНТЕРФЕЙС -->
- <div id="mainApp" class="glass">
-   
-   <!-- САЙДБАР -->
-   <div id="sidebar" class="sidebar">
-     <div class="sidebar-header">
-       <h3 style="letter-spacing: 0.5px; color: var(--accent);">Nexa</h3>
-       <div style="display: flex; gap: 8px;">
-         <button class="icon-btn" title="Админ-панель" onclick="openAdminPanel()" style="color: #ff4757; border-color: rgba(255, 71, 87, 0.3);">👑</button>
-         <button class="icon-btn" title="Создать" onclick="openCreateModal()">+</button>
-         <button class="icon-btn" title="Настройки" onclick="openSettings()">⚙️</button>
-       </div>
-     </div>
-     
-     <!-- ПОИСК -->
-     <div class="search-box">
-       <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск чатов, групп, каналов..." oninput="filterDialogs()">
-     </div>
-
-     <div id="chatsList" class="chat-list"></div>
-   </div>
-
-   <!-- ОКНО ЧАТА -->
-   <div id="chatWindow" class="chat-window">
-     <div class="chat-header">
-       <button id="backBtn" class="icon-btn" style="display:none;" onclick="showSidebar()">←</button>
-       <div id="chatAvatar" class="avatar" style="display:none;"></div>
-       <div>
-         <h4 id="chatName" data-i18n="selectDialog">Выберите диалог</h4>
-         <span id="chatSub" style="font-size: 11px; color: var(--text-muted);"></span>
-       </div>
-     </div>
-     
-     <div id="messagesContainer" class="messages-container">
-       <div style="text-align:center; color: var(--text-muted); margin-top: 40%;" data-i18n="emptyChatHint">Выберите чат или канал для начала</div>
-     </div>
-     
-     <div class="input-area">
-       <!-- Панель Эмодзи -->
-       <div id="emojiPicker" class="emoji-picker">
-         <span class="emoji-item" onclick="addEmoji('😀')">😀</span>
-         <span class="emoji-item" onclick="addEmoji('😂')">😂</span>
-         <span class="emoji-item" onclick="addEmoji('❤️')">❤️</span>
-         <span class="emoji-item" onclick="addEmoji('🔥')">🔥</span>
-         <span class="emoji-item" onclick="addEmoji('👍')">👍</span>
-         <span class="emoji-item" onclick="addEmoji('😎')">😎</span>
-         <span class="emoji-item" onclick="addEmoji('🎉')">🎉</span>
-         <span class="emoji-item" onclick="addEmoji('🚀')">🚀</span>
-         <span class="emoji-item" onclick="addEmoji('🤔')">🤔</span>
-         <span class="emoji-item" onclick="addEmoji('✨')">✨</span>
-         <span class="emoji-item" onclick="addEmoji('💩')">💩</span>
-         <span class="emoji-item" onclick="addEmoji('🙌')">🙌</span>
-       </div>
-
-       <button class="icon-btn" title="Эмодзи" onclick="toggleEmojiPicker()">😀</button>
-       <input type="text" id="messageInput" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
-       <button id="voiceBtn" class="icon-btn" title="Голосовое сообщение" onclick="toggleVoiceRecord()">🎙️</button>
-       <button class="btn" onclick="sendMessage()">➤</button>
-     </div>
-   </div>
- </div>
-
- <!-- МОДАЛКА АДМИН-ПАНЕЛИ -->
- <div id="adminOverlay" class="modal-overlay">
-   <div class="settings-modal glass" style="max-width: 500px; height: auto;">
-     <div class="settings-topbar">
-       <h3 style="color: #ff4757;">👑 Панель Управления</h3>
-       <button class="icon-btn" onclick="closeModal('adminOverlay')">✕</button>
-     </div>
-     <div style="display: flex; gap: 10px; margin-top: 15px;">
-       <div class="admin-stat-box">
-         <div class="admin-stat-num">1,204</div>
-         <span style="font-size: 11px; color: var(--text-muted);">Пользователей</span>
-       </div>
-       <div class="admin-stat-box">
-         <div class="admin-stat-num">342</div>
-         <span style="font-size: 11px; color: var(--text-muted);">Онлайн</span>
-       </div>
-       <div class="admin-stat-box">
-         <div class="admin-stat-num">15.4k</div>
-         <span style="font-size: 11px; color: var(--text-muted);">Сообщений</span>
-       </div>
-     </div>
-     <h4 style="margin: 20px 0 10px; color: var(--accent);">Управление пользователями</h4>
-     <div style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
-       <div class="admin-user-row">
-         <div>
-           <div style="font-weight: 600;">Spammer99</div>
-           <div style="font-size: 11px; color: var(--text-muted);">Нарушение правил</div>
-         </div>
-         <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Забанить</button>
-       </div>
-       <div class="admin-user-row">
-         <div>
-           <div style="font-weight: 600;">ToxicUser</div>
-           <div style="font-size: 11px; color: var(--text-muted);">Спам в общем чате</div>
-         </div>
-         <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Забанить</button>
-       </div>
-       <div class="admin-user-row">
-         <div>
-           <div style="font-weight: 600;">TestBot</div>
-           <div style="font-size: 11px; color: var(--text-muted);">API Тест</div>
-         </div>
-         <button class="btn outline" style="padding: 6px 12px; font-size: 12px;">Управление</button>
-       </div>
-     </div>
-   </div>
- </div>
-
- <!-- МОДАЛКА СОЗДАНИЯ ГРУППЫ / КАНАЛА -->
- <div id="createModal" class="modal-overlay">
-   <div class="auth-box glass" style="max-width: 360px;">
-     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-       <h3 data-i18n="createTitle">Создать</h3>
-       <button class="icon-btn" onclick="closeModal('createModal')">✕</button>
-     </div>
-     <div style="display: flex; flex-direction: column; gap: 12px;">
-       <select id="createType" class="settings-input">
-         <option value="group" data-i18n="groupOpt">👥 Группа</option>
-         <option value="channel" data-i18n="channelOpt">📢 Канал</option>
-       </select>
-       <input type="text" id="createTitleInput" class="settings-input" placeholder="Название">
-       <input type="text" id="createDesc" class="settings-input" placeholder="Описание (необязательно)">
-       <button class="btn" onclick="createNewDialog()" data-i18n="createBtn">Создать</button>
-     </div>
-   </div>
- </div>
-
- <!-- КАСТОМНОЕ УНИВЕРСАЛЬНОЕ МОДАЛЬНОЕ ОКНО -->
- <div id="customDialogModal" class="modal-overlay">
-   <div class="auth-box glass" style="max-width: 380px;">
-     <h3 id="customModalTitle" style="color: var(--accent); margin-bottom: 10px;">Nexa</h3>
-     <p id="customModalText" style="font-size: 14px; margin-bottom: 15px; color: var(--text-main); white-space: pre-wrap; line-height: 1.4;"></p>
-     <div id="customModalInputContainer" style="display: none; margin-bottom: 15px;">
-       <input type="text" id="customModalInput" class="settings-input" placeholder="">
-     </div>
-     <div id="customModalButtons" style="display: flex; gap: 10px; justify-content: center;">
-       <button id="customModalOkBtn" class="btn" style="flex: 1;">OK</button>
-       <button id="customModalCancelBtn" class="btn btn-danger" style="flex: 1; display: none;">Отмена</button>
-     </div>
-   </div>
- </div>
-
- <!-- НАСТРОЙКИ (2 КОЛОНКИ) -->
- <div id="settingsOverlay" class="modal-overlay">
-   <div class="settings-modal glass">
-     <div class="settings-topbar">
-       <h3 style="color: var(--accent);" data-i18n="settingsTitle">Настройки Nexa</h3>
-       <button class="icon-btn" onclick="closeModal('settingsOverlay')">✕</button>
-     </div>
-
-     <div class="settings-layout">
-       <!-- МЕНЮ НАСТРОЕК -->
-       <div class="settings-nav">
-         <button class="nav-btn active" onclick="switchTab('tabProfile', this)" data-i18n="tabProfile">👤 Профиль</button>
-         <button class="nav-btn" onclick="switchTab('tabGeneral', this)" data-i18n="tabGeneral">⚙️ Основные</button>
-         <button class="nav-btn" onclick="switchTab('tabAppearance', this)" data-i18n="tabAppearance">🎨 Оформление</button>
-         <button class="nav-btn" onclick="switchTab('tabNotifications', this)" data-i18n="tabNotifications">🔔 Уведомления</button>
-         <button class="nav-btn" onclick="switchTab('tabSecurity', this)" data-i18n="tabSecurity">🛡️ Безопасность</button>
-         <button class="nav-btn" onclick="switchTab('tabStorage', this)" data-i18n="tabStorage">💾 Память и Сеть</button>
-       </div>
-
-       <!-- КОНТЕНТ НАСТРОЕК -->
-       <div class="settings-content">
-         
-         <!-- 1. ПРОФИЛЬ -->
-         <div id="tabProfile" class="settings-panel active">
-           <div class="setting-group">
-             <div class="group-title" data-i18n="profileGroup">Данные профиля</div>
-             <div style="display: flex; align-items: center; gap: 15px;">
-               <div id="settingsAvatarPreview" class="avatar" style="width: 56px; height: 56px;"></div>
-               <button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="changeAvatarUrl()" data-i18n="changeAvatarBtn">Сменить аватар</button>
-             </div>
-             <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-               <span style="font-size: 11px; color: var(--text-muted);" data-i18n="nicknameLabel">Имя пользователя</span>
-               <input type="text" id="settingsNickInput" class="settings-input" value="User">
-             </div>
-             
-             <!-- БЛОК ВЫБОРА ЗНАЧКОВ -->
-             <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 5px;">
-               <span style="font-size: 11px; color: var(--text-muted);">Выбрать значок (Бейдж)</span>
-               <div class="badges-container" id="badgeSelection">
-                 <div class="badge-item active" onclick="selectBadge(this, '')">Без значка</div>
-                 <div class="badge-item" onclick="selectBadge(this, '💎')">💎 Premium</div>
-                 <div class="badge-item" onclick="selectBadge(this, '🚀')">🚀 Олд</div>
-                 <div class="badge-item" onclick="selectBadge(this, '🧪')">🧪 Тестер</div>
-                 <div class="badge-item" onclick="selectBadge(this, '🔥')">🔥 Актив</div>
-               </div>
-             </div>
-
-             <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-               <span style="font-size: 11px; color: var(--text-muted);" data-i18n="bioLabel">О себе (Био)</span>
-               <input type="text" id="settingsBioInput" class="settings-input" placeholder="Напишите пару слов о себе">
-             </div>
-             <button class="btn" style="background: rgba(255,255,255,0.1); color: #fff; box-shadow: none;" onclick="saveProfileData()" data-i18n="saveChangesBtn">Сохранить изменения</button>
-           </div>
-         </div>
-
-         <!-- 2. ОСНОВНЫЕ -->
-         <div id="tabGeneral" class="settings-panel">
-           <div class="setting-group">
-             <div class="group-title" data-i18n="sysGroup">Системные</div>
-             <div class="setting-item">
-               <span data-i18n="langLabel">Язык приложения</span>
-               <select id="langSelect" class="settings-input" style="width: auto;" onchange="changeLanguage(this.value)">
-                 <option value="ru">Русский</option>
-                 <option value="en">English</option>
-               </select>
-             </div>
-             <div class="setting-item"><span data-i18n="autoMedia">Автозагрузка медиа</span><input type="checkbox" checked></div>
-             <div class="setting-item"><span data-i18n="sendEnter">Отправка по Enter</span><input type="checkbox" id="sendByEnterToggle" checked></div>
-             <div class="setting-item"><span data-i18n="linkPreview">Предпросмотр ссылок</span><input type="checkbox" checked></div>
-           </div>
-         </div>
-
-         <!-- 3. ОФОРМЛЕНИЕ -->
-         <div id="tabAppearance" class="settings-panel">
-           <div class="setting-group">
-             <div class="group-title" data-i18n="visualGroup">Визуальный стиль</div>
-             <div class="setting-item"><span data-i18n="bgAnim">Анимация фона (Blobs)</span><input type="checkbox" id="blobToggle" checked onchange="toggleBlobs(this.checked)"></div>
-             <div class="setting-item"><span data-i18n="textSize">Размер текста</span>
-               <input type="range" min="12" max="18" value="14" oninput="changeFontSize(this.value)">
-             </div>
-             <div class="setting-item"><span data-i18n="borderRadius">Скругление элементов</span>
-               <select class="settings-input" style="width: auto;" onchange="changeBorderRadius(this.value)">
-                 <option value="20px" data-i18n="radiusStd">Стандартное</option>
-                 <option value="10px" data-i18n="radiusSharp">Острое</option>
-                 <option value="30px" data-i18n="radiusRound">Круглое</option>
-               </select>
-             </div>
-           </div>
-         </div>
-
-         <!-- 4. УВЕДОМЛЕНИЯ -->
-         <div id="tabNotifications" class="settings-panel">
-           <div class="setting-group">
-             <div class="group-title" data-i18n="soundGroup">Звуки и оповещения</div>
-             <div class="setting-item"><span data-i18n="pushNotif">Push-уведомления</span><input type="checkbox" checked></div>
-             <div class="setting-item"><span data-i18n="msgSound">Звук сообщений</span><input type="checkbox" checked></div>
-             <div class="setting-item"><span data-i18n="chanNotif">Уведомления от каналов</span><input type="checkbox" checked></div>
-             <div class="setting-item"><span data-i18n="groupNotif">Уведомления от групп</span><input type="checkbox" checked></div>
-             <div class="setting-item"><span data-i18n="vibration">Вибрация при клике</span><input type="checkbox" checked></div>
-           </div>
-         </div>
-
-         <!-- 5. БЕЗОПАСНОСТЬ -->
-         <div id="tabSecurity" class="settings-panel">
-           <div class="setting-group">
-             <div class="group-title" data-i18n="secGroup">Защита аккаунта</div>
-             <div class="setting-item"><span data-i18n="twoFA">Двухфакторная аутентификация</span><input type="checkbox"></div>
-             <div class="setting-item" style="flex-direction: column; align-items: flex-start; gap: 6px;">
-               <span style="font-size: 11px; color: var(--text-muted);" data-i18n="changePwdLabel">Сменить пароль</span>
-               <input type="password" id="oldPwd" class="settings-input" placeholder="Старый пароль">
-               <input type="password" id="newPwd" class="settings-input" placeholder="Новый пароль">
-             </div>
-             <button class="btn" onclick="changePassword()" data-i18n="updatePwdBtn">Обновить пароль</button>
-           </div>
-         </div>
-
-         <!-- 6. ПАМЯТЬ И СЕТЬ -->
-         <div id="tabStorage" class="settings-panel">
-           <div class="setting-group">
-             <div class="group-title" data-i18n="storageGroup">Управление данными</div>
-             <div class="setting-item"><span data-i18n="dataSaving">Экономия трафика</span><input type="checkbox"></div>
-             <button class="btn btn-danger" onclick="clearCache()" data-i18n="clearCacheBtn">Очистить кэш сообщений</button>
-             <button class="btn btn-danger" onclick="logout()" data-i18n="logoutBtn">Выйти из аккаунта</button>
-             <button class="btn btn-dark-danger" onclick="deleteAccount()" data-i18n="deleteAccountBtn">Удалить аккаунт</button>
-           </div>
-         </div>
-
-       </div>
-     </div>
-   </div>
- </div>
-
- <script>
-const SUPABASE_URL = 'https://cgbfqznwdfremepyatef.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnYmZxem53ZGZyZW1lcHlhdGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNTM0ODcsImV4cCI6MjEwMDcyOTQ4N30.OWpxicJy7C-dynPWpeZc--Kte1oe2NXtZ16zeUdooWM';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
- let currentUser = null;
- let currentChatId = null;
- let isRecording = false;
- let uploadedAvatar = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
- let currentLang = localStorage.getItem('nexa_lang') || 'ru';
-
- let dialogs = [
-   { id: 1, name: "Общий чат Nexa", type: "group", avatar: "https://cdn-icons-png.flaticon.com/512/3682/3682281.png", sub: "142 участника" },
-   { id: 2, name: "Новости и Обновления", type: "channel", avatar: "https://cdn-icons-png.flaticon.com/512/2972/2972531.png", sub: "890 подписчиков" }
- ];
-
- let messages = {
-   1: [
-     { id: 101, author: "Алекс", role: "👑 Админ", badge: "💎", text: "Привет всем в Nexa Messenger!", my: false },
-     { id: 102, author: "Дмитрий", role: "⭐ Модератор", badge: "🚀", text: "Новый дизайн супер!", my: false }
-   ],
-   2: [
-     { id: 201, author: "Nexa Team", role: "👑 Админ", badge: "💎", text: "Добро пожаловать в официальный канал!", my: false }
-   ]
- };
-
- const translations = {
-   ru: {
-     appSubtitle: "Добро пожаловать в мессенджер нового поколения",
-     loginTab: "Вход", regTab: "Регистрация", loginBtn: "Войти", demoBtn: "Быстрый демо-вход",
-     selectDialog: "Выберите диалог", emptyChatHint: "Выберите чат или канал для начала",
-     createTitle: "Создать", groupOpt: "👥 Группа", channelOpt: "📢 Канал", createBtn: "Создать",
-     settingsTitle: "Настройки Nexa", tabProfile: "👤 Профиль", tabGeneral: "⚙️ Основные",
-     tabAppearance: "🎨 Оформление", tabNotifications: "🔔 Уведомления", tabSecurity: "🛡️ Безопасность",
-     tabStorage: "💾 Память и Сеть", profileGroup: "Данные профиля", changeAvatarBtn: "Сменить аватар",
-     nicknameLabel: "Имя пользователя", bioLabel: "О себе (Био)", saveChangesBtn: "Сохранить изменения",
-     sysGroup: "Системные", langLabel: "Язык приложения", autoMedia: "Автозагрузка медиа",
-     sendEnter: "Отправка по Enter", linkPreview: "Предпросмотр ссылок", visualGroup: "Визуальный стиль",
-     bgAnim: "Анимация фона (Blobs)", textSize: "Размер текста", borderRadius: "Скругление элементов",
-     radiusStd: "Стандартное", radiusSharp: "Острое", radiusRound: "Круглое", soundGroup: "Звуки и оповещения",
-     pushNotif: "Push-уведомления", msgSound: "Звук сообщений", chanNotif: "Уведомления от каналов",
-     groupNotif: "Уведомления от групп", vibration: "Вибрация при клике", secGroup: "Защита аккаунта",
-     twoFA: "Двухфакторная аутентификация", changePwdLabel: "Сменить пароль", updatePwdBtn: "Обновить пароль",
-     storageGroup: "Управление данными", dataSaving: "Экономия трафика", clearCacheBtn: "Очистить кэш сообщений",
-     logoutBtn: "Выйти из аккаунта", deleteAccountBtn: "Удалить аккаунт"
-   },
-   en: {
-     appSubtitle: "Welcome to next-gen messenger",
-     loginTab: "Login", regTab: "Register", loginBtn: "Log In", demoBtn: "Quick Demo",
-     selectDialog: "Select a dialog", emptyChatHint: "Choose a chat or channel to start",
-     createTitle: "Create", groupOpt: "👥 Group", channelOpt: "📢 Channel", createBtn: "Create",
-     settingsTitle: "Nexa Settings", tabProfile: "👤 Profile", tabGeneral: "⚙️ General",
-     tabAppearance: "🎨 Appearance", tabNotifications: "🔔 Notifications", tabSecurity: "🛡️ Security",
-     tabStorage: "💾 Storage & Network", profileGroup: "Profile Info", changeAvatarBtn: "Change Avatar",
-     nicknameLabel: "Username", bioLabel: "Bio", saveChangesBtn: "Save Changes",
-     sysGroup: "System", langLabel: "Language", autoMedia: "Auto-download media",
-     sendEnter: "Send with Enter", linkPreview: "Link preview", visualGroup: "Visual Style",
-     bgAnim: "Background Blobs", textSize: "Text Size", borderRadius: "Border Radius",
-     radiusStd: "Standard", radiusSharp: "Sharp", radiusRound: "Round", soundGroup: "Sounds",
-     pushNotif: "Push Notifications", msgSound: "Message Sounds", chanNotif: "Channel Alerts",
-     groupNotif: "Group Alerts", vibration: "Vibration", secGroup: "Security",
-     twoFA: "2FA Authentication", changePwdLabel: "Change Password", updatePwdBtn: "Update Password",
-     storageGroup: "Storage", dataSaving: "Data Saver", clearCacheBtn: "Clear Cache",
-     logoutBtn: "Log Out", deleteAccountBtn: "Delete Account"
-   }
- };
-
- function toggleAuthTab(tab) {
-   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-   if(tab === 'login') {
-     document.querySelectorAll('.auth-tab')[0].classList.add('active');
-     document.getElementById('loginForm').classList.add('active');
-   } else {
-     document.querySelectorAll('.auth-tab')[1].classList.add('active');
-     document.getElementById('regForm').classList.add('active');
-   }
- }
-
- function nextRegStep(step) {
-   document.getElementById(`step-${step}`).classList.remove('active');
-   document.getElementById(`step-${step+1}`).classList.add('active');
-   document.getElementById('regProgress').style.width = (step + 1) * 25 + '%';
- }
-
- function prevRegStep(step) {
-   document.getElementById(`step-${step}`).classList.remove('active');
-   document.getElementById(`step-${step-1}`).classList.add('active');
-   document.getElementById('regProgress').style.width = (step - 1) * 25 + '%';
- }
-
- function handleAvatarUpload(e) {
-   const file = e.target.files[0];
-   if(file) {
-     const reader = new FileReader();
-     reader.onload = function(evt) {
-       uploadedAvatar = evt.target.result;
-       const prev = document.getElementById('regAvatarPreview');
-       prev.style.backgroundImage = `url('${uploadedAvatar}')`;
-       prev.classList.add('loaded');
-     };
-     reader.readAsDataURL(file);
-   }
- }
-
- async function submitRegistration() {
-  console.log("Шаг 1: Кнопка нажата, собираем данные...");
-  const email = document.getElementById('regEmail').value;
-  const password = document.getElementById('regPassword').value;
-  const username = document.getElementById('regUsername').value || 'NewUser';
-  
-  if (!email || !password) {
-    alert("Заполните email и пароль!");
-    return;
-  }
-
-  try {
-    const { data, error } = await supabaseClient.auth.signUp({
-      email: email,
-      password: password,
-    });
-
-    if (error) {
-      alert("Ошибка при регистрации: " + error.message);
-      return; 
-    }
+  <!-- ==========================================================================
+     ГЛАВНОЕ ОКНО ПРИЛОЖЕНИЯ
+     ========================================================================== -->
+  <div id="mainApp" class="glass">
     
-    if (data.user) {
-      const { error: insertError } = await supabaseClient
-        .from('users') 
-        .insert([{ id: data.user.id, username: username, avatar: uploadedAvatar }]);
+    <!-- САЙДБАР -->
+    <div id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <h3 style="letter-spacing: 1px; color: var(--accent); font-weight: 800;">Nexa</h3>
+        <div style="display: flex; gap: 8px;">
+          <button class="icon-btn" title="Создать чат/канал" onclick="openCreateModal()">+</button>
+        </div>
+      </div>
+      
+      <!-- Категории чатов -->
+      <div class="chat-categories">
+        <div class="cat-chip active" onclick="filterCategory('all', this)">Все</div>
+        <div class="cat-chip" onclick="filterCategory('group', this)">Группы</div>
+        <div class="cat-chip" onclick="filterCategory('channel', this)">Каналы</div>
+      </div>
 
-      if (insertError) {
-        alert("Ошибка записи в таблицу: " + insertError.message);
-        return; 
+      <div class="search-box">
+        <input type="text" id="searchInput" class="search-input" placeholder="Поиск диалогов..." oninput="filterDialogs()">
+      </div>
+
+      <!-- Список чатов -->
+      <div id="chatsList" class="chat-list">
+        <div style="text-align:center; color: var(--text-muted); margin-top: 30px; font-size: 12px;">Подключение к базе...</div>
+      </div>
+
+      <!-- Футер сайдбара с профилем -->
+      <div class="sidebar-footer">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div id="userAvatar" class="avatar"></div>
+          <div>
+            <div id="userName" style="font-weight: 700; font-size: 13px;">...</div>
+            <div id="userRole" style="font-size: 11px; color: var(--text-muted);">...</div>
+          </div>
+        </div>
+        <button class="icon-btn" title="Настройки" onclick="openSettingsModal()">⚙️</button>
+      </div>
+    </div>
+
+    <!-- ОКНО ЧАТА -->
+    <div id="chatWindow" class="chat-window">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <button id="backBtn" class="icon-btn" style="display:none;" onclick="showSidebar()">←</button>
+          <div id="chatAvatar" class="avatar" style="display:none;"></div>
+          <div>
+            <h4 id="chatName" style="font-size: 15px;">Выберите диалог</h4>
+            <span id="chatSub" style="font-size: 11px; color: var(--text-muted);"></span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="icon-btn" title="Очистить" onclick="clearCurrentChatMessages()">🗑️</button>
+        </div>
+      </div>
+      
+      <!-- Контейнер сообщений -->
+      <div id="messagesContainer" class="messages-container">
+        <div style="text-align:center; color: var(--text-muted); margin-top: 35%; font-size: 13px;">Выберите чат для начала общения</div>
+      </div>
+      
+      <!-- Панель эмодзи -->
+      <div id="emojiPicker" class="emoji-picker">
+        <span class="emoji-item" onclick="addEmoji('😀')">😀</span>
+        <span class="emoji-item" onclick="addEmoji('😂')">😂</span>
+        <span class="emoji-item" onclick="addEmoji('🔥')">🔥</span>
+        <span class="emoji-item" onclick="addEmoji('❤️')">❤️</span>
+        <span class="emoji-item" onclick="addEmoji('👍')">👍</span>
+        <span class="emoji-item" onclick="addEmoji('🚀')">🚀</span>
+        <span class="emoji-item" onclick="addEmoji('😎')">😎</span>
+        <span class="emoji-item" onclick="addEmoji('🎉')">🎉</span>
+        <span class="emoji-item" onclick="addEmoji('💡')">💡</span>
+        <span class="emoji-item" onclick="addEmoji('💩')">💩</span>
+        <span class="emoji-item" onclick="addEmoji('✨')">✨</span>
+        <span class="emoji-item" onclick="addEmoji('💻')">💻</span>
+      </div>
+
+      <!-- Поле ввода -->
+      <div class="input-area">
+        <button class="icon-btn" style="border:none; background:transparent;" onclick="toggleEmojiPicker()">😊</button>
+        <input type="text" id="messageInput" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button class="btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+     МОДАЛЬНЫЕ ОКНА (СОЗДАНИЕ И ДВУХКОЛОНОЧНЫЕ НАСТРОЙКИ)
+     ========================================================================== -->
+  <!-- МОДАЛКА СОЗДАНИЯ -->
+  <div id="createModal" class="modal-overlay">
+    <div class="auth-box glass" style="max-width: 380px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3>Новый диалог</h3>
+        <button class="icon-btn" onclick="closeModal('createModal')">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <select id="createType" class="settings-input">
+          <option value="group">👥 Группа</option>
+          <option value="channel">📢 Канал</option>
+        </select>
+        <input type="text" id="createTitleInput" class="settings-input" placeholder="Название">
+        <button class="btn" onclick="createNewDialog()">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА НАСТРОЕК -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="settings-modal glass">
+      <div class="settings-topbar">
+        <h3>Настройки Nexa</h3>
+        <button class="icon-btn" onclick="closeModal('settingsModal')">✕</button>
+      </div>
+      
+      <div class="settings-layout">
+        <!-- Левое меню -->
+        <div class="settings-nav">
+          <button class="nav-btn active" onclick="switchSettingsTab('general', this)">⚙️ Общие</button>
+          <button class="nav-btn" onclick="switchSettingsTab('appearance', this)">🎨 Оформление</button>
+          <button class="nav-btn" onclick="switchSettingsTab('account', this)">👤 Аккаунт</button>
+          <button class="nav-btn" onclick="switchSettingsTab('about', this)">ℹ️ О программе</button>
+        </div>
+
+        <!-- Правая область с вкладками -->
+        <div class="settings-content">
+          <!-- Вкладка Общие -->
+          <div id="setTabGeneral" class="settings-panel active">
+            <div class="setting-group">
+              <span class="group-title">Параметры уведомлений</span>
+              <div class="setting-item">
+                <span>Звуковые оповещения</span>
+                <input type="checkbox" id="soundToggle" checked>
+              </div>
+              <div class="setting-item">
+                <span>Всплывающие Toast-уведомления</span>
+                <input type="checkbox" id="toastToggle" checked>
+              </div>
+            </div>
+          </div>
+
+          <!-- Вкладка Внешний вид -->
+          <div id="setTabAppearance" class="settings-panel">
+            <div class="setting-group">
+              <span class="group-title">Персонализация</span>
+              <div class="setting-item">
+                <span>Основной акцентный цвет</span>
+                <input type="color" id="accentPicker" value="#00d2ff" onchange="changeAccentColor(this.value)">
+              </div>
+              <div class="setting-item">
+                <span>Размер шрифта приложения</span>
+                <input type="range" min="12" max="18" value="14.5" step="0.5" oninput="changeFontSize(this.value)">
+              </div>
+            </div>
+          </div>
+
+          <!-- Вкладка Аккаунт -->
+          <div id="setTabAccount" class="settings-panel">
+            <div class="setting-group">
+              <span class="group-title">Настройки профиля</span>
+              <input type="text" id="settingsBioInput" class="settings-input" placeholder="Изменить ваш статус">
+              <button class="btn" style="margin-top: 5px;" onclick="saveAccountSettings()">Сохранить изменения</button>
+              <button class="btn outline" style="border-color: var(--danger); color: var(--danger); margin-top: 10px;" onclick="logout()">Выйти из аккаунта</button>
+            </div>
+          </div>
+
+          <!-- Вкладка О программе -->
+          <div id="setTabAbout" class="settings-panel">
+            <div class="setting-group">
+              <span class="group-title">Nexa Core</span>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                <strong>Nexa Messenger</strong> — защищённая облачная платформа для мгновенного обмена сообщениями.<br><br>
+                Версия: 3.0.4 Pro<br>
+                Стек: HTML5, CSS3 Glassmorphism, Supabase Realtime Engine.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+     ЛОГИКА И СКРИПТЫ (JS LOGIC & SUPABASE REALTIME ENGINE)
+     ========================================================================== -->
+  <script>
+    // --- ИНИЦИАЛИЗАЦИЯ SUPABASE ---
+    const SUPABASE_URL = 'https://cgbfqznwdfremepyatef.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnYmZxem53ZGZyZW1lcHlhdGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNTM0ODcsImV4cCI6MjEwMDcyOTQ4N30.OWpxicJy7C-dynPWpeZc--Kte1oe2NXtZ16zeUdooWM';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let currentChatId = null;
+    let uploadedAvatarUrl = 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+    let currentCategory = 'all';
+
+    let dialogs = [];
+    let messages = {};
+
+    // --- ЗВУКОВОЙ ДВИЖОК ВЕБ-АУДИО (БЕЗ ВНЕШНИХ ФАЙЛОВ) ---
+    function playNotificationSound() {
+      if (!document.getElementById('soundToggle').checked) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } catch (e) {
+        console.log('Audio Context Error:', e);
       }
     }
 
-    alert("Регистрация успешна!"); 
-    loginUser(username, uploadedAvatar, "👤 Участник");
+    // --- TOAST УВЕДОМЛЕНИЯ ---
+    function showToast(text) {
+      if (!document.getElementById('toastToggle').checked) return;
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerText = text;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
 
-  } catch (err) {
-    console.error("Критическая ошибка кода:", err);
-  }
-}
+    // --- АВТОРИЗАЦИЯ И РЕГИСТРАЦИЯ ---
+    function toggleAuthTab(tab) {
+      document.getElementById('tabLoginBtn').classList.toggle('active', tab === 'login');
+      document.getElementById('tabRegBtn').classList.toggle('active', tab === 'reg');
+      document.getElementById('loginForm').classList.toggle('active', tab === 'login');
+      document.getElementById('regForm').classList.toggle('active', tab === 'reg');
+    }
 
- function handleLogin(e) {
-   e.preventDefault();
-   const username = document.getElementById('loginUsername').value || 'User';
-   loginUser(username, 'https://cdn-icons-png.flaticon.com/512/847/847969.png', "👑 Разработчик");
- }
+    let currentRegStep = 1;
+    function nextRegStep(step) {
+      if (step === 2 && !document.getElementById('regUsername').value.trim()) {
+        showToast('Пожалуйста, введите логин!');
+        return;
+      }
+      if (step === 3) {
+        const p1 = document.getElementById('regPassword').value;
+        const p2 = document.getElementById('regPasswordConfirm').value;
+        if (!p1) return showToast('Введите пароль!');
+        if (p1 !== p2) return showToast('Пароли не совпадают!');
+      }
+      if (step === 4) {
+        document.getElementById('regSummary').innerHTML = `
+          <b>Логин:</b> ${document.getElementById('regUsername').value}<br>
+          <b>Роль:</b> ${document.getElementById('regRole').value}<br>
+          <b>О себе:</b> ${document.getElementById('regBio').value || 'Не указано'}
+        `;
+      }
 
- function demoLogin() {
-   loginUser("Demo User", "https://cdn-icons-png.flaticon.com/512/847/847969.png", "⭐ Тестировщик");
- }
+      document.getElementById(`regStep${currentRegStep}`).classList.remove('active');
+      currentRegStep = step;
+      document.getElementById(`regStep${currentRegStep}`).classList.add('active');
+      document.getElementById('regProgressBar').style.width = `${(currentRegStep / 4) * 100}%`;
+    }
 
- function loginUser(name, avatar, role) {
-   currentUser = { name, avatar, role, badge: '' }; // Добавили поле значка
-   document.getElementById('authScreen').classList.remove('active');
-   document.getElementById('mainApp').classList.add('active');
-   document.getElementById('settingsNickInput').value = name;
-   document.getElementById('settingsAvatarPreview').style.backgroundImage = `url('${avatar}')`;
-   renderDialogs();
- }
+    function prevRegStep(step) {
+      document.getElementById(`regStep${currentRegStep}`).classList.remove('active');
+      currentRegStep = step;
+      document.getElementById(`regStep${currentRegStep}`).classList.add('active');
+      document.getElementById('regProgressBar').style.width = `${(currentRegStep / 4) * 100}%`;
+    }
 
- function renderDialogs() {
-   const list = document.getElementById('chatsList');
-   list.innerHTML = '';
-   dialogs.forEach(d => {
-     const item = document.createElement('div');
-     item.className = `chat-item ${d.id === currentChatId ? 'active' : ''}`;
-     item.onclick = () => selectChat(d.id);
-     item.innerHTML = `
-       <div class="avatar" style="background-image: url('${d.avatar}')"></div>
-       <div style="flex:1; overflow:hidden;">
-         <div style="font-weight:600; font-size:14px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${d.name}</div>
-         <div style="font-size:11px; color:var(--text-muted);">${d.sub || ''}</div>
-       </div>
-       <span class="chat-item-type">${d.type === 'group' ? 'Группа' : 'Канал'}</span>
-     `;
-     list.appendChild(item);
-   });
- }
+    function handleAvatarUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          uploadedAvatarUrl = evt.target.result;
+          const prev = document.getElementById('avatarPreview');
+          prev.style.backgroundImage = `url('${uploadedAvatarUrl}')`;
+          prev.classList.add('loaded');
+          showToast('Аватар успешно загружен!');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
 
- function filterDialogs() {
-   const q = document.getElementById('searchInput').value.toLowerCase();
-   const items = document.querySelectorAll('.chat-item');
-   dialogs.forEach((d, idx) => {
-     if(d.name.toLowerCase().includes(q)) {
-       items[idx].style.display = 'flex';
-     } else {
-       items[idx].style.display = 'none';
-     }
-   });
- }
+    function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value.trim() || 'Пользователь';
+      currentUser = {
+        name: username,
+        role: "👤 Пользователь",
+        avatar: uploadedAvatarUrl,
+        bio: ""
+      };
+      initMainApp();
+    }
 
- function selectChat(id) {
-   currentChatId = id;
-   renderDialogs();
-   const chat = dialogs.find(d => d.id === id);
-   document.getElementById('chatName').innerText = chat.name;
-   document.getElementById('chatSub').innerText = chat.sub || '';
-   const av = document.getElementById('chatAvatar');
-   av.style.display = 'block';
-   av.style.backgroundImage = `url('${chat.avatar}')`;
-   renderMessages();
+    function handleRegister(e) {
+      e.preventDefault();
+      currentUser = {
+        name: document.getElementById('regUsername').value.trim(),
+        role: document.getElementById('regRole').value,
+        avatar: uploadedAvatarUrl,
+        bio: document.getElementById('regBio').value.trim()
+      };
+      initMainApp();
+    }
 
-   if(window.innerWidth <= 768) {
-     document.getElementById('sidebar').classList.add('hidden');
-     document.getElementById('chatWindow').classList.add('active');
-     document.getElementById('backBtn').style.display = 'flex';
-   }
- }
+    function initMainApp() {
+      document.getElementById('authScreen').classList.remove('active');
+      document.getElementById('mainApp').classList.add('active');
+      
+      document.getElementById('userName').innerText = currentUser.name;
+      document.getElementById('userRole').innerText = currentUser.role;
+      document.getElementById('userAvatar').style.backgroundImage = `url('${currentUser.avatar}')`;
+      
+      showToast(`С возвращением, ${currentUser.name}!`);
+      fetchRealtimeDialogs();
+    }
 
- function showSidebar() {
-   document.getElementById('sidebar').classList.remove('hidden');
-   document.getElementById('chatWindow').classList.remove('active');
-   document.getElementById('backBtn').style.display = 'none';
- }
+    // --- РАБОТА С СУПАБЕЙС ДИАЛОГАМИ ---
+    async function fetchRealtimeDialogs() {
+      const { data, error } = await supabaseClient.from('dialogs').select('*');
+      if (!error && data) {
+        dialogs = data;
+      } else {
+        // Дефолтные чаты для первой загрузки
+        dialogs = [
+          { id: 1, name: '💬 Общий Чат', type: 'group', participants_count: 12, avatar: '' },
+          { id: 2, name: '📢 Новости Nexa', type: 'channel', participants_count: 84, avatar: '' }
+        ];
+      }
+      
+      renderDialogs();
 
- function renderMessages() {
-   const container = document.getElementById('messagesContainer');
-   container.innerHTML = '';
-   if(!messages[currentChatId] || messages[currentChatId].length === 0) {
-     container.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 40%;">Здесь пока нет сообщений...</div>';
-     return;
-   }
+      // Подписка на добавление чатов в реальном времени
+      supabaseClient
+        .channel('public:dialogs')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dialogs' }, payload => {
+          if (payload.eventType === 'INSERT') {
+            dialogs.push(payload.new);
+            renderDialogs();
+            playNotificationSound();
+            showToast(`Новый диалог: ${payload.new.name}`);
+          }
+        })
+        .subscribe();
+    }
 
-   messages[currentChatId].forEach(m => {
-     const div = document.createElement('div');
-     div.className = `msg ${m.my ? 'my' : ''}`;
-     
-     let contentHtml = '';
-     if(m.isVoice) {
-       contentHtml = `
-         <div class="voice-msg">
-           <button class="voice-play-btn">▶</button>
-           <div class="voice-wave">
-             <div class="voice-bar" style="height:60%"></div>
-             <div class="voice-bar" style="height:100%"></div>
-             <div class="voice-bar" style="height:40%"></div>
-             <div class="voice-bar" style="height:80%"></div>
-             <div class="voice-bar" style="height:50%"></div>
-           </div>
-           <span style="font-size:11px; opacity:0.8;">0:04</span>
-         </div>
-       `;
-     } else {
-       contentHtml = m.text;
-     }
+    function filterCategory(cat, btn) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      renderDialogs();
+    }
 
-     let badgeHtml = m.badge ? `<span class="msg-badge">${m.badge}</span>` : '';
+    function renderDialogs() {
+      const list = document.getElementById('chatsList');
+      list.innerHTML = '';
+      
+      const filtered = dialogs.filter(d => {
+        if (currentCategory === 'all') return true;
+        return d.type === currentCategory;
+      });
 
-     div.innerHTML = `
-       <div class="msg-author">
-         ${m.author} ${badgeHtml}
-         <span class="role-badge">${m.role || '👤 Участник'}</span>
-       </div>
-       ${contentHtml}
-     `;
-     container.appendChild(div);
-   });
-   container.scrollTop = container.scrollHeight;
- }
+      if (filtered.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 30px; font-size: 12px;">В этой категории нет чатов</div>';
+        return;
+      }
 
- function sendMessage() {
-   const input = document.getElementById('messageInput');
-   const txt = input.value.trim();
-   if(!txt || !currentChatId) return;
+      filtered.forEach((d, index) => {
+        const item = document.createElement('div');
+        item.className = `chat-item ${d.id === currentChatId ? 'active' : ''}`;
+        item.style.animationDelay = `${index * 0.04}s`;
+        item.onclick = () => selectChat(d.id, d);
+        item.innerHTML = `
+          <div class="avatar" style="background-image: url('${d.avatar || 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'}')"></div>
+          <div style="flex:1; overflow:hidden;">
+            <div style="font-weight:700; font-size:13.5px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${d.name}</div>
+            <div style="font-size:11px; color:var(--text-muted);">Участников: ${d.participants_count || 1}</div>
+          </div>
+          <span class="chat-item-type">${d.type === 'group' ? 'Группа' : 'Канал'}</span>
+        `;
+        list.appendChild(item);
+      });
+    }
 
-   if(!messages[currentChatId]) messages[currentChatId] = [];
-   messages[currentChatId].push({
-     id: Date.now(),
-     author: currentUser.name,
-     role: currentUser.role,
-     badge: currentUser.badge || '',
-     text: txt,
-     my: true
-   });
+    function filterDialogs() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const items = document.querySelectorAll('.chat-item');
+      dialogs.forEach((d, idx) => {
+        if (items[idx]) {
+          if (d.name.toLowerCase().includes(q)) items[idx].style.display = 'flex';
+          else items[idx].style.display = 'none';
+        }
+      });
+    }
 
-   input.value = '';
-   renderMessages();
- }
+    async function selectChat(id, chatObj) {
+      currentChatId = id;
+      renderDialogs();
+      
+      document.getElementById('chatName').innerText = chatObj.name;
+      document.getElementById('chatSub').innerText = `${chatObj.type === 'group' ? 'Группа' : 'Канал'} • ${chatObj.participants_count || 1} участников`;
+      const av = document.getElementById('chatAvatar');
+      av.style.display = 'block';
+      av.style.backgroundImage = `url('${chatObj.avatar || 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png'}')`;
+      
+      if (window.innerWidth <= 768) {
+        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('chatWindow').classList.add('active');
+        document.getElementById('backBtn').style.display = 'flex';
+      }
 
- function toggleVoiceRecord() {
-   const btn = document.getElementById('voiceBtn');
-   if(!currentChatId) {
-     showCustomModal("Внимание", "Сначала выберите чат!");
-     return;
-   }
+      await fetchMessages(id);
+    }
 
-   if(!isRecording) {
-     isRecording = true;
-     btn.classList.add('recording');
-     btn.innerText = '⏹️';
-   } else {
-     isRecording = false;
-     btn.classList.remove('recording');
-     btn.innerText = '🎙️';
-     
-     if(!messages[currentChatId]) messages[currentChatId] = [];
-     messages[currentChatId].push({
-       id: Date.now(),
-       author: currentUser.name,
-       role: currentUser.role,
-       badge: currentUser.badge || '',
-       isVoice: true,
-       my: true
-     });
-     renderMessages();
-   }
- }
+    // --- РАБОТА С СООБЩЕНИЯМИ В СУПАБЕЙС ---
+    async function fetchMessages(chatId) {
+      const container = document.getElementById('messagesContainer');
+      container.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 35%; font-size: 13px;">Загрузка сообщений...</div>';
 
- function toggleEmojiPicker() {
-   document.getElementById('emojiPicker').classList.toggle('active');
- }
+      const { data, error } = await supabaseClient
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true });
 
- function addEmoji(e) {
-   const inp = document.getElementById('messageInput');
-   inp.value += e;
-   document.getElementById('emojiPicker').classList.remove('active');
-   inp.focus();
- }
+      if (!error && data) {
+        messages[chatId] = data;
+      } else {
+        if (!messages[chatId]) messages[chatId] = [];
+      }
+      
+      renderMessages();
 
- function openCreateModal() { document.getElementById('createModal').classList.add('active'); }
- function openSettings() { document.getElementById('settingsOverlay').classList.add('active'); }
- function openAdminPanel() { document.getElementById('adminOverlay').classList.add('active'); }
- function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+      // Слушатель новых сообщений конкретного чата
+      supabaseClient
+        .channel(`public:messages:${chatId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, payload => {
+          if (!messages[chatId]) messages[chatId] = [];
+          
+          // Избегаем дублирования при локальной отправке
+          if (!messages[chatId].some(m => m.id === payload.new.id)) {
+            messages[chatId].push(payload.new);
+            renderMessages();
+            playNotificationSound();
+          }
+        })
+        .subscribe();
+    }
 
- function createNewDialog() {
-   const title = document.getElementById('createTitleInput').value.trim();
-   const type = document.getElementById('createType').value;
-   if(!title) return;
+    function renderMessages() {
+      const container = document.getElementById('messagesContainer');
+      container.innerHTML = '';
+      
+      if (!messages[currentChatId] || messages[currentChatId].length === 0) {
+        container.innerHTML = '<div style="text-align:center; color: var(--text-muted); margin-top: 35%; font-size: 13px;">В этом чате пока нет сообщений.<br>Напишите что-нибудь первым!</div>';
+        return;
+      }
 
-   const newId = Date.now();
-   dialogs.push({
-     id: newId,
-     name: title,
-     type: type,
-     avatar: type === 'group' ? 'https://cdn-icons-png.flaticon.com/512/3682/3682281.png' : 'https://cdn-icons-png.flaticon.com/512/2972/2972531.png',
-     sub: "1 участник"
-   });
+      messages[currentChatId].forEach(m => {
+        const isMy = m.author === currentUser.name;
+        const div = document.createElement('div');
+        div.className = `msg ${isMy ? 'my' : ''}`;
+        
+        const dateStr = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-   document.getElementById('createTitleInput').value = '';
-   closeModal('createModal');
-   renderDialogs();
-   selectChat(newId);
- }
+        div.innerHTML = `
+          <div class="msg-author">
+            ${m.author}
+            <span class="role-badge">${m.role || 'Пользователь'}</span>
+          </div>
+          <div>${m.text}</div>
+          <div class="msg-time">${dateStr}</div>
+        `;
+        container.appendChild(div);
+      });
+      
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    }
 
- function switchTab(tabId, btn) {
-   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-   document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
-   btn.classList.add('active');
-   document.getElementById(tabId).classList.add('active');
- }
+    async function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const txt = input.value.trim();
+      if (!txt || !currentChatId) return;
+      
+      input.value = '';
+      document.getElementById('emojiPicker').classList.remove('active');
 
- function toggleBlobs(show) {
-   document.getElementById('blobsContainer').style.display = show ? 'block' : 'none';
- }
+      const newMsg = {
+        chat_id: currentChatId,
+        author: currentUser.name,
+        role: currentUser.role,
+        text: txt,
+        created_at: new Date().toISOString()
+      };
 
- function changeFontSize(val) {
-   document.documentElement.style.setProperty('--app-font-size', val + 'px');
- }
+      // Оптимистичное отображение
+      if (!messages[currentChatId]) messages[currentChatId] = [];
+      messages[currentChatId].push(newMsg);
+      renderMessages();
 
- function changeBorderRadius(val) {
-   document.documentElement.style.setProperty('--border-radius', val);
- }
+      // Отправка в Supabase
+      const { error } = await supabaseClient.from('messages').insert([newMsg]);
+      if (error) {
+        console.warn('Ошибка отправки в сеть, сообщение сохранено локально:', error);
+      }
+    }
 
- function changeLanguage(lang) {
-   currentLang = lang;
-   localStorage.setItem('nexa_lang', lang);
-   const dict = translations[lang] || translations.ru;
-   document.querySelectorAll('[data-i18n]').forEach(el => {
-     const key = el.getAttribute('data-i18n');
-     if(dict[key]) el.innerText = dict[key];
-   });
- }
+    function clearCurrentChatMessages() {
+      if (!currentChatId) return;
+      messages[currentChatId] = [];
+      renderMessages();
+      showToast('История сообщений очищена!');
+    }
 
- /* ВЫБОР ЗНАЧКА */
- function selectBadge(el, badge) {
-   document.querySelectorAll('#badgeSelection .badge-item').forEach(b => b.classList.remove('active'));
-   el.classList.add('active');
-   currentUser.badge = badge;
- }
+    async function createNewDialog() {
+      const title = document.getElementById('createTitleInput').value.trim();
+      const type = document.getElementById('createType').value;
+      if (!title) return showToast('Введите название!');
 
- function saveProfileData() {
-   const newName = document.getElementById('settingsNickInput').value.trim();
-   if(newName) currentUser.name = newName;
-   showCustomModal("Успех", "Данные профиля обновлены!");
-   renderMessages(); // Перерендерим чат, чтобы обновить ник и бейдж
- }
+      const newDialog = {
+        name: title,
+        type: type,
+        participants_count: 1
+      };
 
- function changeAvatarUrl() {
-   showCustomModal("Сменить аватар", "Введите URL аватарки:", true, (url) => {
-     if(url) {
-       currentUser.avatar = url;
-       document.getElementById('settingsAvatarPreview').style.backgroundImage = `url('${url}')`;
-     }
-   });
- }
+      const { data, error } = await supabaseClient.from('dialogs').insert([newDialog]).select();
 
- function changePassword() {
-   showCustomModal("Успех", "Пароль успешно обновлен!");
- }
+      if (error || !data) {
+        newDialog.id = Date.now();
+        dialogs.push(newDialog);
+        renderDialogs();
+        selectChat(newDialog.id, newDialog);
+      } else {
+        dialogs.push(data[0]);
+        renderDialogs();
+        selectChat(data[0].id, data[0]);
+      }
 
- function clearCache() {
-   messages = {};
-   renderMessages();
-   showCustomModal("Память", "Кэш сообщений успешно очищен!");
- }
+      document.getElementById('createTitleInput').value = '';
+      closeModal('createModal');
+      showToast(`Диалог "${title}" создан!`);
+    }
 
- function logout() {
-   location.reload();
- }
+    // --- ЭМОДЗИ И ДОПОЛНИТЕЛЬНЫЙ ИНТЕРФЕЙС ---
+    function toggleEmojiPicker() {
+      document.getElementById('emojiPicker').classList.toggle('active');
+    }
 
- function deleteAccount() {
-   showCustomModal("Удаление", "Аккаунт удален.");
-   setTimeout(() => location.reload(), 1000);
- }
+    function addEmoji(emoji) {
+      const input = document.getElementById('messageInput');
+      input.value += emoji;
+      input.focus();
+    }
 
- function showCustomModal(title, text, hasInput = false, onOk = null) {
-   const modal = document.getElementById('customDialogModal');
-   document.getElementById('customModalTitle').innerText = title;
-   document.getElementById('customModalText').innerText = text;
-   const inputContainer = document.getElementById('customModalInputContainer');
-   const input = document.getElementById('customModalInput');
+    // --- НАСТРОЙКИ И МОДАЛЬНЫЕ ОКНА ---
+    function openSettingsModal() { document.getElementById('settingsModal').classList.add('active'); }
+    function openCreateModal() { document.getElementById('createModal').classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-   if(hasInput) {
-     inputContainer.style.display = 'block';
-     input.value = '';
-   } else {
-     inputContainer.style.display = 'none';
-   }
+    function switchSettingsTab(tabName, btn) {
+      document.querySelectorAll('.settings-nav .nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
+      
+      btn.classList.add('active');
+      if (tabName === 'general') document.getElementById('setTabGeneral').classList.add('active');
+      if (tabName === 'appearance') document.getElementById('setTabAppearance').classList.add('active');
+      if (tabName === 'account') document.getElementById('setTabAccount').classList.add('active');
+      if (tabName === 'about') document.getElementById('setTabAbout').classList.add('active');
+    }
 
-   const okBtn = document.getElementById('customModalOkBtn');
-   okBtn.onclick = function() {
-     modal.classList.remove('active');
-     if(onOk) onOk(hasInput ? input.value : true);
-   };
+    function changeAccentColor(color) {
+      document.documentElement.style.setProperty('--accent', color);
+      document.documentElement.style.setProperty('--accent-glow', color + '66');
+      showToast('Акцентный цвет изменён!');
+    }
 
-   modal.classList.add('active');
- }
- 
- </script>
- <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('Service Worker зарегистрирован!'))
-      .catch((err) => console.log('Ошибка:', err));
-  }
-</script>
+    function changeFontSize(val) {
+      document.documentElement.style.setProperty('--app-font-size', `${val}px`);
+    }
+
+    function saveAccountSettings() {
+      const newBio = document.getElementById('settingsBioInput').value.trim();
+      if (newBio) {
+        currentUser.bio = newBio;
+        document.getElementById('userRole').innerText = `${currentUser.role} • ${newBio}`;
+        showToast('Статус успешно обновлён!');
+      }
+      closeModal('settingsModal');
+    }
+
+    function logout() {
+      location.reload();
+    }
+
+    function showSidebar() {
+      document.getElementById('sidebar').classList.remove('hidden');
+      document.getElementById('chatWindow').classList.remove('active');
+      document.getElementById('backBtn').style.display = 'none';
+    }
+  </script>
 </body>
 </html>
